@@ -1,0 +1,147 @@
+.transcript-terminal {
+    position: fixed;
+    background: rgba(5, 15, 25, 0.85);
+    border: 1px solid rgba(0, 234, 255, 0.33);
+    font-family: 'Orbitron', 'Consolas', monospace;
+    color: #00eaff;
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 234, 255, 0.15);
+}
+
+.transcript-terminal.dragging {
+    opacity: 0.9;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 234, 255, 0.2);
+}
+
+.transcript-terminal.resizing {
+    user-select: none;
+}
+
+.terminal-header {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(0, 234, 255, 0.2);
+    background: rgba(0, 234, 255, 0.05);
+    letter-spacing: 1px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.terminal-drag-handle {
+    cursor: grab;
+    user-select: none;
+}
+
+.terminal-drag-handle:active {
+    cursor: grabbing;
+}
+
+.terminal-drag-handle .drag-dots {
+    color: rgba(0, 234, 255, 0.5);
+    font-size: 14px;
+    letter-spacing: -2px;
+}
+
+/* Resize handles */
+.terminal-resize-handle {
+    position: absolute;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+.terminal-resize-handle.resize-right {
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: ew-resize;
+}
+
+.terminal-resize-handle.resize-bottom {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 6px;
+    cursor: ns-resize;
+}
+
+.terminal-resize-handle.resize-corner {
+    right: 0;
+    bottom: 0;
+    width: 14px;
+    height: 14px;
+    cursor: nwse-resize;
+}
+
+.terminal-resize-handle.resize-corner::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid rgba(0, 234, 255, 0.5);
+    border-bottom: 2px solid rgba(0, 234, 255, 0.5);
+}
+
+.terminal-resize-handle:hover {
+    background: rgba(0, 234, 255, 0.3);
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.terminal-content {
+    padding: 12px;
+    overflow-y: auto;
+    font-size: 12px;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: #00eaff transparent;
+}
+
+.terminal-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.terminal-content::-webkit-scrollbar-thumb {
+    background: #00eaff;
+    border-radius: 2px;
+}
+
+.terminal-line {
+    margin-bottom: 6px;
+    word-wrap: break-word;
+    text-shadow: 0 0 2px rgba(0, 234, 255, 0.3);
+}
+
+.interim {
+    opacity: 0.7;
+    color: #9ff;
+    font-style: italic;
+}
+
+.user-line {
+    color: #00ff88;
+    text-shadow: 0 0 4px rgba(0, 255, 136, 0.4);
+}
+
+.jarvis-line {
+    color: #0bdae8;
+    text-shadow: 0 0 4px rgba(13, 149, 246, 0.4);
+}
+
+.system-line {
+    color: #888;
+    opacity: 0.8;
+}

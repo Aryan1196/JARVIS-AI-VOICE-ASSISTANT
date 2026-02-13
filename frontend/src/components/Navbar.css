@@ -1,0 +1,102 @@
+.navbar {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 1200px;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1000;
+
+    /* Liquid Glass Effect with Tech Cuts */
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    /* Tech Border via Clip Path */
+    clip-path: polygon(20px 0,
+            100% 0,
+            100% calc(100% - 20px),
+            calc(100% - 20px) 100%,
+            0 100%,
+            0 20px);
+    /* Remove rounding to sharpen the cuts */
+    border-radius: 0;
+
+    /* Use Filter for Drop Shadow on irregular shape */
+    filter: drop-shadow(0 4px 30px rgba(0, 0, 0, 0.1));
+
+    /* Create a border effect using an inset box-shadow won't work perfectly with clip-path, 
+       so we use a subtle background border simulation or just rely on the shape */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Note: Border gets clipped, but on a thin 1px line it often looks okay for tech UI */
+
+    transition: all 0.3s ease;
+}
+
+.navbar:hover {
+    background: rgba(255, 255, 255, 0.05);
+    filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.2));
+    border-color: rgba(0, 243, 255, 0.5);
+}
+
+.nav-logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #00f3ff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+    cursor: pointer;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+}
+
+.nav-link:hover {
+    color: #00f3ff;
+    background: rgba(0, 243, 255, 0.05);
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+}
+
+.nav-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.nav-btn {
+    background: rgba(0, 243, 255, 0.1);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    color: #00f3ff;
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+.nav-btn:hover {
+    background: rgba(0, 243, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+    transform: translateY(-1px);
+}
