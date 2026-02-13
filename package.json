@@ -1,0 +1,11 @@
+{
+    "name": "jarvis-deployment-root",
+    "version": "1.0.0",
+    "scripts": {
+        "install": "cd frontend && npm install",
+        "build": "cd frontend && npm run build"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}
