@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = 'https://jarvis-ai-voice-assistant.onrender.com';
 
 export const useDeepgram = ({ onFinal, onInterim, onStatus }) => {
     const [isListening, setIsListening] = useState(false);

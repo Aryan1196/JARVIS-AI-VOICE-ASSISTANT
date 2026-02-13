@@ -3,7 +3,7 @@ import { useDeepgram } from '../hooks/useDeepgram';
 import { useBlob } from '../context/BlobContext';
 import './TranscriptTerminal.css';
 
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = 'https://jarvis-ai-voice-assistant.onrender.com';
 
 const TranscriptTerminal = () => {
     const [logs, setLogs] = useState([]);

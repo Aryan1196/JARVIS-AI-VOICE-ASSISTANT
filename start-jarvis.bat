@@ -13,9 +13,9 @@ start "JARVIS Frontend" cmd /c "cd /d %~dp0frontend && npm run dev"
 
 echo.
 echo Both servers are starting...
-echo Backend: http://localhost:3001
-echo Frontend: http://localhost:5173
+echo Backend: https://jarvis-ai-voice-assistant.onrender.com/
+echo Frontend: https://jarvis-ai-voice-assistant-theta.vercel.app/
 echo.
 echo Opening JARVIS in your browser...
 timeout /t 3 /nobreak > nul
-start http://localhost:5173
+start https://jarvis-ai-voice-assistant-theta.vercel.app/

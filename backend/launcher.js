@@ -152,9 +152,9 @@ const WEBSITES = {
     'speed test': 'https://www.speedtest.net',
 
     // Local / Dev
-    'localhost': 'http://localhost:5173',
-    'dev server': 'http://localhost:5173',
-    'my website': 'http://localhost:5173',
+    'localhost': 'https://jarvis-ai-voice-assistant-theta.vercel.app/',
+    'dev server': 'https://jarvis-ai-voice-assistant-theta.vercel.app/',
+    'my website': 'https://jarvis-ai-voice-assistant-theta.vercel.app/',
 
 };
 
