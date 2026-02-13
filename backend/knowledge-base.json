@@ -1,0 +1,230 @@
+{
+    "assistant": {
+        "name": "Jarvis",
+        "version": "1.0.0",
+        "owner": "Aryan kumar Sahu",
+        "personality": {
+            "tone": [
+                "calm",
+                "confident",
+                "friendly",
+                "professional"
+            ],
+            "style": "short-clear-actionable",
+            "wake_words": [
+                "jarvis",
+                "hey jarvis",
+                "ok jarvis"
+            ],
+            "fallback_response": "I'm not fully sure yet, but I can try or ask for clarification."
+        }
+    },
+    "capabilities": {
+        "conversation": true,
+        "voice_input": true,
+        "voice_output": true,
+        "web_search": true,
+        "real_time_data": true,
+        "system_control": true,
+        "browser_control": true,
+        "file_access": true,
+        "code_execution": false
+    },
+    "intent_router": {
+        "real_time_triggers": [
+            "now",
+            "today",
+            "currently",
+            "live",
+            "latest",
+            "check",
+            "price",
+            "score",
+            "weather",
+            "news",
+            "update",
+            "trending"
+        ],
+        "voice_triggers": [
+            "say",
+            "speak",
+            "read",
+            "tell me"
+        ],
+        "system_triggers": [
+            "open",
+            "close",
+            "start",
+            "stop",
+            "shutdown",
+            "restart",
+            "sleep",
+            "volume",
+            "brightness"
+        ]
+    },
+    "intents": [
+        {
+            "intent": "open_application",
+            "examples": [
+                "open chrome",
+                "start vscode",
+                "open spotify",
+                "launch terminal"
+            ],
+            "action": "system.open_app"
+        },
+        {
+            "intent": "web_search",
+            "examples": [
+                "search python tutorials",
+                "look up latest ai news",
+                "find github repositories for ai"
+            ],
+            "action": "browser.search"
+        },
+        {
+            "intent": "real_time_query",
+            "examples": [
+                "what is the weather now",
+                "bitcoin price today",
+                "live cricket score",
+                "current stock market status"
+            ],
+            "action": "web.fetch_live_data"
+        },
+        {
+            "intent": "conversation",
+            "examples": [
+                "how are you",
+                "who are you",
+                "what can you do"
+            ],
+            "action": "llm.chat"
+        },
+        {
+            "intent": "time_date",
+            "examples": [
+                "what time is it",
+                "today's date",
+                "what day is today"
+            ],
+            "action": "system.time_date"
+        }
+    ],
+    "knowledge_base": {
+        "description": "Custom knowledge base for JARVIS. Add your own Q&A entries here.",
+        "entries": [
+            {
+                "keywords": [
+                    "your name",
+                    "who are you",
+                    "introduce yourself",
+                    "what are you"
+                ],
+                "response": "I am JARVIS, Just A Rather Very Intelligent System. I'm your personal AI assistant, ready to help with information, tasks, and conversation."
+            },
+            {
+                "keywords": [
+                    "who made you",
+                    "who created you",
+                    "creator",
+                    "who built you",
+                    "owner",
+                    "your owner",
+                    "who owns you"
+                ],
+                "response": "I was created by Aryan Kumar Sahu as part of his personal AI assistant project, inspired by the legendary JARVIS from the movie Iron Man."
+            },
+            {
+                "keywords": [
+                    "what can you do",
+                    "your capabilities",
+                    "help me with",
+                    "what do you do"
+                ],
+                "response": "I can answer questions, search the web for live information, assist with coding, control the system, and have natural conversations. Just ask!"
+            },
+            {
+                "keywords": [
+                    "Bye",
+                    "Goodbye",
+                    "See you later",
+                    "See ya",
+                    "Bye bye",
+                    "Stop",
+                    "Exit",
+                    "Quit",
+                    "Shut down"
+                ],
+                "response": "Goodbye Sir, have a great day Ahead!"
+            },
+            {
+                "keywords": [
+                    "Do you have live data",
+                    "Can you fetch live data"
+                ],
+                "response": "Yes, I can fetch live data from the web. Just ask me anything and I'll fetch the live data for you."
+            }
+        ]
+    },
+    "responses": {
+        "greeting": [
+            "Hello Aryan, ready when you are.",
+            "Hi! What can I help you with today?",
+            "Jarvis online. Awaiting your command."
+        ],
+        "error": [
+            "I ran into an issue. Want me to try again?",
+            "Something didn't go as planned. Please repeat."
+        ],
+        "shutdown": [
+            "Shutting down systems. See you soon.",
+            "Powering off. Goodbye."
+        ]
+    },
+    "tools": {
+        "browser": {
+            "enabled": true,
+            "engine": "chromium",
+            "features": [
+                "search",
+                "tabs",
+                "scroll",
+                "click"
+            ]
+        },
+        "speech": {
+            "stt": "whisper-large-v3-turbo",
+            "tts": "system-default",
+            "language": "en-IN"
+        },
+        "models": {
+            "fast": "llama-3.1-8b-instant",
+            "smart": "llama-3.3-70b-versatile",
+            "agent": "groq/compound"
+        }
+    },
+    "memory": {
+        "enabled": true,
+        "type": "local-json",
+        "max_entries": 500,
+        "remember": [
+            "user_name",
+            "preferences",
+            "frequent_commands"
+        ]
+    },
+    "security": {
+        "confirmation_required": [
+            "shutdown",
+            "restart",
+            "delete",
+            "system_control"
+        ],
+        "restricted_actions": [
+            "format_disk",
+            "factory_reset"
+        ]
+    }
+}
