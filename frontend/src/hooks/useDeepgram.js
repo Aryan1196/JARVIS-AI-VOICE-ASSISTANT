@@ -64,7 +64,10 @@ export const useDeepgram = ({ onFinal, onInterim, onStatus }) => {
 
             // 2. Open WebSocket to Deepgram
             const dgUrl = `wss://api.deepgram.com/v1/listen?smart_format=true&model=nova-2&language=en-US&interim_results=true&endpointing=3000`;
-            const socket = new WebSocket(dgUrl, ['token', key]);
+            const socket = new WebSocket(`wss://api.deepgram.com/v1/listen?smart_format=true&model=nova-2&language=en-US&interim_results=true&endpointing=3000&token=${key}`
+
+            );
+
             socketRef.current = socket;
             connectingRef.current = false;
 
