@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+// Forces deployment rebuild: v1
 const BACKEND_URL = 'https://jarvis-ai-voice-assistant.onrender.com';
 
 export const useDeepgram = ({ onFinal, onInterim, onStatus }) => {
