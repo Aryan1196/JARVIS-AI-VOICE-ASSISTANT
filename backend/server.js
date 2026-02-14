@@ -22,7 +22,11 @@ const LOGS_FILE = path.join(__dirname, 'logs.json');
 const KNOWLEDGE_BASE_FILE = path.join(__dirname, 'knowledge-base.json');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: "https://jarvis-ai-voice-assistant-theta.vercel.app",
+    methods: ["GET", "POST"],
+    credentials: true
+}));
 app.use(express.json());
 app.use('/api/launcher', launcherRoutes);
 
