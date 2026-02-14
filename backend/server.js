@@ -778,19 +778,21 @@ app.post('/api/tts', async (req, res) => {
 });
 
 // Deepgram Token Endpoint
-app.get('/api/deepgram-token', async (req, res) => {
-    try {
-        if (!process.env.DEEPGRAM_API_KEY) {
-            console.error('Deepgram API Key is missing');
-            return res.status(500).json({ error: 'Deepgram API Key is missing in backend .env' });
-        }
+app.get("/api/deepgram-token", async (req, res) => {
+  try {
+    const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 
-        // Return the key to the frontend
-        res.json({ key: process.env.DEEPGRAM_API_KEY });
-    } catch (error) {
-        console.error('Deepgram token error:', error);
-        res.status(500).json({ error: 'Failed to get Deepgram token' });
+    const { result, error } = await deepgram.auth.grantToken();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
     }
+
+    res.json({ key: result.access_token });
+
+  } catch (err) {
+    res.status(500).json({ error: "Failed to generate token" });
+  }
 });
 
 // Location Reverse Geocoding Endpoint
