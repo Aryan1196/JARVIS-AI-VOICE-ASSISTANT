@@ -778,6 +778,8 @@ app.post('/api/tts', async (req, res) => {
 });
 
 // Deepgram Token Endpoint
+import { createClient } from "@deepgram/sdk";
+
 app.get("/api/deepgram-token", async (req, res) => {
   try {
     const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
@@ -791,9 +793,11 @@ app.get("/api/deepgram-token", async (req, res) => {
     res.json({ key: result.access_token });
 
   } catch (err) {
+    console.error("Token generation error:", err);
     res.status(500).json({ error: "Failed to generate token" });
   }
 });
+
 
 // Location Reverse Geocoding Endpoint
 app.get('/api/location', async (req, res) => {
