@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import './InfoPanel.css';
 import { useBlob } from '../context/BlobContext';
 
+const BACKEND_URL = 'https://jarvis-ai-voice-assistant.onrender.com';
+
 const InfoPanel = () => {
     const [time, setTime] = useState(new Date());
     const [weather, setWeather] = useState(null);
@@ -51,7 +53,7 @@ const InfoPanel = () => {
                 async (position) => {
                     try {
                         const { latitude, longitude } = position.coords;
-                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                        const response = await fetch(`${BACKEND_URL}/api/location?lat=${latitude}&lon=${longitude}`);
                         const data = await response.json();
 
                         // Extract city

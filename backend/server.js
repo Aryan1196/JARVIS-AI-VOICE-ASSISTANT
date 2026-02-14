@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import puppeteer from 'puppeteer';
+import axios from 'axios';
 import { generateSpeech } from './tts.js';
 import launcherRoutes from './launcherRoutes.js';
 
@@ -22,11 +23,7 @@ const LOGS_FILE = path.join(__dirname, 'logs.json');
 const KNOWLEDGE_BASE_FILE = path.join(__dirname, 'knowledge-base.json');
 
 const app = express();
-app.use(cors({
-    origin: "https://jarvis-ai-voice-assistant-theta.vercel.app",
-    methods: ["GET", "POST"],
-    credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 app.use('/api/launcher', launcherRoutes);
 
@@ -793,6 +790,36 @@ app.get('/api/deepgram-token', async (req, res) => {
     } catch (error) {
         console.error('Deepgram token error:', error);
         res.status(500).json({ error: 'Failed to get Deepgram token' });
+    }
+});
+
+// Location Reverse Geocoding Endpoint
+app.get('/api/location', async (req, res) => {
+    try {
+        const { lat, lon } = req.query;
+
+        if (!lat || !lon) {
+            return res.status(400).json({ error: 'Latitude and Longitude are required' });
+        }
+
+        console.log(`Fetching location for Lat: ${lat}, Lon: ${lon}`);
+
+        const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+            params: {
+                format: 'json',
+                lat: lat,
+                lon: lon
+            },
+            headers: {
+                'User-Agent': 'JarvisVoiceAssistant/1.0' // OpenStreetMap requires a User-Agent
+            }
+        });
+
+        res.json(response.data);
+
+    } catch (error) {
+        console.error('Location fetch error:', error.message);
+        res.status(500).json({ error: 'Failed to fetch location data' });
     }
 });
 
