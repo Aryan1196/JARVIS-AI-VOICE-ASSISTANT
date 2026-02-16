@@ -21,6 +21,7 @@
         "groq-sdk": "^0.3.2",
         "multer": "^2.0.2",
         "puppeteer": "^24.37.2",
-        "socket.io": "^4.8.3"
+        "socket.io": "^4.8.3",
+        "systeminformation": "^5.31.0"
     }
 }

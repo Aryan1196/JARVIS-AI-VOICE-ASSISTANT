@@ -1,373 +1,343 @@
 /* ========================================
-   INFO PANEL - EASY CUSTOMIZATION
-   Change these values to adjust the panel!
+   JARVIS AI HUD - FUTURISTIC INTERFACE
    ======================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Inter:wght@300;400;500;600&display=swap');
+
 :root {
-    /* POSITION - distance from edges */
-    --panel-top: 80px;
-    --panel-left: 20px;
+    /* POSITION */
+    --hud-top: 60px;
+    --hud-right: 30px;
+    /* Moved to Right */
+    --hud-width: 380px;
 
-    /* SIZE - panel dimensions */
-    --panel-width: 280px;
+    /* COLORS - NEON PALETTE */
+    --neon-cyan: #00F5FF;
+    --neon-violet: #7B61FF;
+    --neon-success: #00FF9F;
+    --neon-warning: #FFB020;
+    --bg-dark: #050B1F;
 
-    /* STYLING */
-    --panel-border-radius: 16px;
-    --panel-padding: 20px;
-    --panel-opacity: 0.9;
+    /* GLASSMORPHISM */
+    --glass-bg: rgba(5, 11, 31, 0.85);
+    --glass-border: rgba(0, 245, 255, 0.3);
+    --glass-blur: blur(20px);
 
-    /* COLORS - accent color */
-    --panel-accent: 0, 200, 255;
-    /* RGB values for cyan */
-    --panel-glow: rgba(0, 200, 255, 0.1);
+    /* SHADOWS & GLOWS */
+    --hud-glow: 0 0 30px rgba(0, 245, 255, 0.15);
+    --text-glow: 0 0 10px rgba(0, 245, 255, 0.5);
 }
 
 .info-panel {
     position: fixed;
-    top: var(--panel-top);
-    left: var(--panel-left);
-    width: var(--panel-width);
-    background: linear-gradient(135deg, rgba(0, 20, 40, var(--panel-opacity)) 0%, rgba(0, 40, 60, calc(var(--panel-opacity) - 0.05)) 100%);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(var(--panel-accent), 0.3);
-    border-radius: var(--panel-border-radius);
-    padding: var(--panel-padding);
-    z-index: 100;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    top: var(--hud-top);
+    right: var(--hud-right);
+    /* Changed from left to right */
+    width: var(--hud-width);
+
+    /* GLASSMORPHIC CONTAINER */
+    background: radial-gradient(circle at top left, rgba(20, 30, 60, 0.4), var(--glass-bg));
+    backdrop-filter: var(--glass-blur) saturate(180%);
+    -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
+
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 24px;
+    z-index: 1000;
+
+    font-family: 'Inter', sans-serif;
+    color: white;
+
     box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.4),
-        0 0 20px var(--panel-glow),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    animation: panelSlideIn 0.5s ease-out;
+        0 10px 40px rgba(0, 0, 0, 0.6),
+        inset 0 0 20px rgba(0, 245, 255, 0.05),
+        var(--hud-glow);
+
+    transition: transform 0.1s ease-out, box-shadow 0.3s ease;
+    animation: hudInit 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow: hidden;
 }
 
-@keyframes panelSlideIn {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.info-greeting {
-    font-size: 14px;
-    color: rgba(0, 200, 255, 0.8);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-
-/* Drag handle styling */
-.panel-drag-handle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: grab;
-    padding-bottom: 10px;
-    margin-bottom: 8px;
-    user-select: none;
-}
-
-.panel-drag-handle:active {
-    cursor: grabbing;
-}
-
-.drag-dots {
-    color: rgba(0, 200, 255, 0.5);
-    font-size: 14px;
-    letter-spacing: -2px;
-}
-
-.info-panel.dragging {
-    opacity: 0.9;
-    box-shadow:
-        0 12px 40px rgba(0, 0, 0, 0.5),
-        0 0 30px rgba(0, 200, 255, 0.2);
-    cursor: grabbing;
-}
-
-/* Resize button */
-.panel-resize-btn {
-    margin-left: auto;
-    background: rgba(0, 200, 255, 0.2);
-    border: 1px solid rgba(0, 200, 255, 0.3);
-    border-radius: 4px;
-    color: rgba(0, 200, 255, 0.8);
-    cursor: pointer;
-    padding: 2px 8px;
-    font-size: 12px;
-    transition: all 0.2s ease;
-}
-
-.panel-resize-btn:hover {
-    background: rgba(0, 200, 255, 0.3);
-    color: #00d4ff;
-}
-
-/* Compact mode */
-.info-panel.compact {
-    width: auto;
-    min-width: 180px;
-}
-
-.info-panel.compact .panel-drag-handle {
-    padding-bottom: 0;
-    margin-bottom: 0;
-}
-
-.info-panel.compact .info-greeting {
-    font-family: 'Courier New', monospace;
-    font-size: 18px;
-    color: #00d4ff;
-}
-
-/* Resize handles */
-.panel-resize-handle {
+/* SUBTLE GRID OVERLAY */
+.info-panel::before {
+    content: '';
     position: absolute;
-    background: transparent;
-    transition: background 0.2s ease;
-}
-
-.panel-resize-handle.resize-right {
-    right: 0;
     top: 0;
-    bottom: 0;
-    width: 6px;
-    cursor: ew-resize;
-}
-
-.panel-resize-handle.resize-bottom {
     left: 0;
     right: 0;
     bottom: 0;
-    height: 6px;
-    cursor: ns-resize;
+    background-image:
+        linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+    z-index: 0;
 }
 
-.panel-resize-handle.resize-corner {
-    right: 0;
-    bottom: 0;
-    width: 14px;
-    height: 14px;
-    cursor: nwse-resize;
+@keyframes hudInit {
+    0% {
+        opacity: 0;
+        transform: scale(0.95) translateY(-20px);
+        filter: blur(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: blur(0);
+    }
 }
 
-.panel-resize-handle.resize-corner::after {
-    content: '';
-    position: absolute;
-    right: 3px;
-    bottom: 3px;
-    width: 8px;
-    height: 8px;
-    border-right: 2px solid rgba(0, 200, 255, 0.5);
-    border-bottom: 2px solid rgba(0, 200, 255, 0.5);
-}
-
-.panel-resize-handle:hover {
-    background: rgba(0, 200, 255, 0.3);
-}
-
-.info-panel.resizing {
-    user-select: none;
-}
-
-.info-panel.resizing .panel-resize-handle {
-    background: rgba(0, 200, 255, 0.5);
-}
-
-.info-time-section {
-    margin-bottom: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-.info-time {
-    font-size: 28px;
-    font-weight: 300;
-    color: #00d4ff;
-    text-shadow: 0 0 20px rgba(0, 200, 255, 0.5);
-    letter-spacing: 2px;
-    font-family: 'Courier New', monospace;
-}
-
-.info-date {
-    font-size: 12px;
-    color: #00d4ff;
-    margin-top: 2px;
-}
-
-/* Compact row for location + weather */
-.info-row {
+/* --- HEADER: STATUS & COMPACT TIME --- */
+.panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 8px;
-    border-top: 1px solid rgba(0, 200, 255, 0.2);
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
 }
 
-.info-location {
-    font-size: 12px;
-    color: #00d4ff;
-}
-
-.info-status-mini {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    color: #00ff88;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.status-dot-mini {
-    width: 6px;
-    height: 6px;
-    background: #00ff88;
-    border-radius: 50%;
-    box-shadow: 0 0 6px rgba(0, 255, 136, 0.6);
-    animation: pulse 2s infinite;
-}
-
-.info-weather-compact {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    text-align: right;
-}
-
-.weather-temp-row {
-    font-size: 16px;
-    color: #00d4ff;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.weather-temp-row .weather-emoji {
-    font-size: 20px;
-}
-
-.weather-desc-row {
-    font-size: 11px;
-    color: #00d4ff;
-    text-transform: capitalize;
-}
-
-.info-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.5), transparent);
-    margin: 15px 0;
-}
-
-.info-location-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 15px;
-}
-
-.info-location-icon {
-    font-size: 16px;
-}
-
-.info-location-text {
-    font-size: 14px;
-    color: #00d4ff;
-}
-
-.info-weather-section {
-    background: rgba(0, 150, 200, 0.15);
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 15px;
-}
-
-.weather-main {
+.ai-status {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 8px;
 }
 
-.weather-icon {
-    font-size: 28px;
+.status-dot-pulse {
+    width: 8px;
+    height: 8px;
+    background: var(--neon-cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--neon-cyan);
+    animation: AI-Pulse 2s infinite;
 }
 
-.weather-temp {
-    font-size: 24px;
+@keyframes AI-Pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 245, 255, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(0, 245, 255, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 245, 255, 0);
+    }
+}
+
+.status-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--neon-cyan);
+    text-transform: uppercase;
+    text-shadow: 0 0 5px rgba(0, 245, 255, 0.4);
+}
+
+.compact-time {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* --- MAIN CLOCK --- */
+.clock-container {
+    text-align: center;
+    margin-bottom: 25px;
+    position: relative;
+    z-index: 2;
+}
+
+.main-clock {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(180deg, #fff 20%, var(--neon-cyan) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
+    line-height: 1.1;
+}
+
+.date-display {
+    font-size: 13px;
+    color: var(--neon-violet);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+/* --- SYSTEM STATS ROW --- */
+.system-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 0 10px;
+    position: relative;
+    z-index: 2;
+}
+
+.stat-item {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.stat-value {
+    color: var(--neon-success);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+}
+
+/* --- FOOTER: LOCATION & WEATHER --- */
+.panel-footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 15px;
+    position: relative;
+    z-index: 2;
+}
+
+.location-module {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.loc-icon {
+    font-size: 18px;
+    filter: drop-shadow(0 0 5px var(--neon-violet));
+}
+
+.loc-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.city-name {
+    font-size: 14px;
     font-weight: 600;
     color: #fff;
 }
 
-.weather-details {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.weather-desc {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.weather-feels {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.info-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(0, 200, 255, 0.2);
-}
-
-.status-dot {
-    width: 8px;
-    height: 8px;
-    background: #00ff88;
-    border-radius: 50%;
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.5;
-    }
-}
-
-.status-text {
-    font-size: 12px;
-    color: rgba(0, 255, 136, 0.9);
+.country-name {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
     letter-spacing: 1px;
     text-transform: uppercase;
 }
 
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .info-panel {
-        width: calc(100% - 40px);
-        top: 70px;
-        left: 20px;
-        right: 20px;
+.weather-module {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.weather-module:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--neon-cyan);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.temp-main {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--neon-cyan);
+}
+
+.weather-desc-mini {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: capitalize;
+    text-align: right;
+}
+
+/* --- UTILS --- */
+.pulse-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(0, 245, 255, 0.05), transparent 70%);
+    animation: breathe 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes breathe {
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1);
     }
 
-    .info-time {
-        font-size: 28px;
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
     }
+}
+
+/* RESIZE HANDLES (Hidden but functional) */
+.resize-trigger {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    cursor: nwse-resize;
+    z-index: 10;
+}
+
+.resize-trigger::after {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-bottom: 2px solid var(--neon-cyan);
+    border-right: 2px solid var(--neon-cyan);
+}
+
+/* COMPACT MODE */
+.info-panel.compact {
+    width: auto !important;
+    /* Override inline styles */
+    height: auto !important;
+    min-width: 180px;
+    border-radius: 40px;
+    padding: 10px 20px;
+}
+
+.info-panel.compact .panel-header {
+    margin-bottom: 0;
+    justify-content: center;
+    gap: 15px;
+}
+
+.info-panel.compact .clock-container,
+.info-panel.compact .system-stats,
+.info-panel.compact .panel-footer,
+.info-panel.compact .pulse-bg {
+    display: none;
 }

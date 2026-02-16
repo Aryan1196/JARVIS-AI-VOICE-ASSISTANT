@@ -6,245 +6,169 @@ const InfoPanel = () => {
     const [time, setTime] = useState(new Date());
     const [weather, setWeather] = useState(null);
     const [location, setLocation] = useState({ city: 'Ranchi', country: 'India' });
-    const [loadingLocation, setLoadingLocation] = useState(true);
     const { settings } = useBlob();
 
-    // Drag and drop state
-    const [position, setPosition] = useState(() => {
-        const saved = localStorage.getItem('infoPanelPosition');
-        return saved ? JSON.parse(saved) : { x: 20, y: 80 };
+    // Determine initial position (Default to Top-Right)
+    const getInitialPosition = () => {
+        const saved = localStorage.getItem('infoPanelPos');
+        if (saved) return JSON.parse(saved);
+
+        // Default to Right: Window Width - Panel Width (approx 380) - Margin (30)
+        const x = window.innerWidth - 410;
+        return { x: x > 0 ? x : 50, y: 60 };
+    };
+
+    const [position, setPosition] = useState(getInitialPosition);
+
+    // Size state
+    const [size] = useState(() => {
+        const saved = localStorage.getItem('hudSize');
+        return saved ? JSON.parse(saved) : { width: 380, height: 'auto' };
     });
-    const [isDragging, setIsDragging] = useState(false);
+
     const [isCompact, setIsCompact] = useState(() => {
-        return localStorage.getItem('infoPanelCompact') === 'true';
+        return localStorage.getItem('hudCompact') === 'true';
     });
-    const [panelWidth, setPanelWidth] = useState(() => {
-        const saved = localStorage.getItem('infoPanelWidth');
-        return saved ? parseInt(saved) : 220;
-    });
-    const [panelHeight, setPanelHeight] = useState(() => {
-        const saved = localStorage.getItem('infoPanelHeight');
-        return saved ? parseInt(saved) : 0; // 0 = auto height
-    });
-    const [isResizing, setIsResizing] = useState(false);
-    const [resizeType, setResizeType] = useState(null); // 'width', 'height', 'corner'
-    const dragOffset = useRef({ x: 0, y: 0 });
+
+    // DRAG STATE (REMOVED)
     const panelRef = useRef(null);
 
-    // Update time every second
+    // --- TIME UPDATE ---
     useEffect(() => {
-        const timer = setInterval(() => {
-            setTime(new Date());
-        }, 1000);
+        const timer = setInterval(() => setTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
-    // Get Location
+    // --- LOCATION & WEATHER ---
     useEffect(() => {
-        if (!settings.controls?.location) {
-            setLoadingLocation(false);
-            return;
-        }
+        if (!settings.controls?.location) return;
 
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
-                async (position) => {
+                async (pos) => {
                     try {
-                        const { latitude, longitude } = position.coords;
-                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-                        const data = await response.json();
-
-                        // Extract city
-                        const city = data.address.city || data.address.town || data.address.village || data.address.county || 'Ranchi';
-                        const country = data.address.country || 'India';
-
-                        setLocation({ city, country });
-                    } catch (error) {
-                        console.error("Error fetching location details:", error);
-                        // Keep default Ranchi on error
-                    } finally {
-                        setLoadingLocation(false);
+                        const { latitude, longitude } = pos.coords;
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                        const data = await res.json();
+                        setLocation({
+                            city: data.address.city || data.address.town || 'Ranchi',
+                            country: data.address.country || 'India'
+                        });
+                    } catch (e) {
+                        console.error("Location Error:", e);
                     }
-                },
-                (error) => {
-                    console.error("Geolocation error:", error);
-                    setLoadingLocation(false);
                 }
             );
-        } else {
-            setLoadingLocation(false);
         }
-    }, []);
+    }, [settings.controls?.location]);
 
-    // Get weather data
     useEffect(() => {
         const fetchWeather = async () => {
             try {
-                const response = await fetch(`https://wttr.in/${location.city}?format=j1`);
-                const data = await response.json();
+                const res = await fetch(`https://wttr.in/${location.city}?format=j1`);
+                const data = await res.json();
                 const current = data.current_condition[0];
                 setWeather({
                     temp: current.temp_C,
                     desc: current.weatherDesc[0].value,
-                    humidity: current.humidity,
-                    feelsLike: current.FeelsLikeC,
                     icon: getWeatherIcon(current.weatherCode)
                 });
-            } catch (error) {
-                console.error('Weather fetch error:', error);
-                setWeather({ temp: '--', desc: 'Unavailable', icon: '🌤️' });
+            } catch (e) {
+                setWeather({ temp: '--', desc: 'Offline', icon: '📡' });
             }
         };
         fetchWeather();
-        const weatherTimer = setInterval(fetchWeather, 600000);
-        return () => clearInterval(weatherTimer);
+        const timer = setInterval(fetchWeather, 300000); // 5 mins
+        return () => clearInterval(timer);
     }, [location.city]);
 
-    // Drag handlers
-    const handleMouseDown = (e) => {
-        if (e.target.closest('.panel-drag-handle')) {
-            setIsDragging(true);
-            dragOffset.current = {
-                x: e.clientX - position.x,
-                y: e.clientY - position.y
-            };
-            e.preventDefault();
-        }
-    };
-
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (isDragging) {
-                const newX = Math.max(0, Math.min(window.innerWidth - 300, e.clientX - dragOffset.current.x));
-                const newY = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dragOffset.current.y));
-                setPosition({ x: newX, y: newY });
-            }
-            if (isResizing) {
-                if (resizeType === 'width' || resizeType === 'corner') {
-                    const newWidth = Math.max(200, Math.min(500, e.clientX - position.x));
-                    setPanelWidth(newWidth);
-                }
-                if (resizeType === 'height' || resizeType === 'corner') {
-                    const newHeight = Math.max(150, Math.min(600, e.clientY - position.y));
-                    setPanelHeight(newHeight);
-                }
-            }
-        };
-
-        const handleMouseUp = () => {
-            if (isDragging) {
-                setIsDragging(false);
-                localStorage.setItem('infoPanelPosition', JSON.stringify(position));
-            }
-            if (isResizing) {
-                setIsResizing(false);
-                setResizeType(null);
-                localStorage.setItem('infoPanelWidth', panelWidth.toString());
-                localStorage.setItem('infoPanelHeight', panelHeight.toString());
-            }
-        };
-
-        if (isDragging || isResizing) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-        }
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isDragging, isResizing, resizeType, position, panelWidth, panelHeight]);
-
-    const handleResizeStart = (e, type) => {
-        e.stopPropagation();
-        setIsResizing(true);
-        setResizeType(type);
-    };
+    // --- HELPERS ---
+    const formatTime = (date) => date.toLocaleTimeString('en-US', { hour12: false });
+    const formatCompactTime = (date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const formatDate = (date) => date.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 
     const getWeatherIcon = (code) => {
-        const codeNum = parseInt(code);
-        if (codeNum === 113) return '☀️';
-        if (codeNum === 116) return '⛅';
-        if ([119, 122].includes(codeNum)) return '☁️';
-        if ([176, 263, 266, 293, 296, 299, 302, 305, 308, 311, 314].includes(codeNum)) return '🌧️';
-        if ([200, 386, 389, 392, 395].includes(codeNum)) return '⛈️';
-        if ([179, 182, 185, 227, 230, 323, 326, 329, 332, 335, 338, 350, 368, 371, 374, 377].includes(codeNum)) return '❄️';
-        if ([143, 248, 260].includes(codeNum)) return '🌫️';
+        const c = parseInt(code);
+        if ([113].includes(c)) return '☀️';
+        if ([116, 119, 122].includes(c)) return '☁️';
+        if ([200, 386, 389].includes(c)) return '⛈️';
+        if ([176, 263, 266, 293].includes(c)) return '🌧️';
         return '🌤️';
-    };
-
-    const formatDate = (date) => {
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        return date.toLocaleDateString('en-IN', options);
-    };
-
-    const formatTime = (date) => {
-        return date.toLocaleTimeString('en-IN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-        });
-    };
-
-    const getGreeting = () => {
-        const hour = time.getHours();
-        if (hour < 12) return 'Good Morning';
-        if (hour < 17) return 'Good Afternoon';
-        if (hour < 21) return 'Good Evening';
-        return 'Good Night';
-    };
-
-    const toggleCompact = () => {
-        const newCompact = !isCompact;
-        setIsCompact(newCompact);
-        localStorage.setItem('infoPanelCompact', newCompact.toString());
     };
 
     return (
         <div
             ref={panelRef}
-            className={`info-panel ${isDragging ? 'dragging' : ''} ${isCompact ? 'compact' : ''} ${isResizing ? 'resizing' : ''}`}
+            className={`info-panel ${isCompact ? 'compact' : ''}`}
             style={{
                 left: position.x,
                 top: position.y,
-                width: isCompact ? 'auto' : panelWidth,
-                height: isCompact ? 'auto' : (panelHeight > 0 ? panelHeight : 'auto')
+                right: 'auto', // Override CSS right
+                width: isCompact ? 'auto' : size.width,
+                height: isCompact ? 'auto' : size.height,
+                cursor: 'default'
             }}
         >
-            {/* Resize handles */}
-            <div className="panel-resize-handle resize-right" onMouseDown={(e) => handleResizeStart(e, 'width')}></div>
-            <div className="panel-resize-handle resize-bottom" onMouseDown={(e) => handleResizeStart(e, 'height')}></div>
-            <div className="panel-resize-handle resize-corner" onMouseDown={(e) => handleResizeStart(e, 'corner')}></div>
+            <div className="pulse-bg"></div>
 
-            <div className="panel-drag-handle">
-                {/* Drag disabled */}
-                <span className="info-greeting">{isCompact ? formatTime(time) : `${getGreeting()}, Sir`}</span>
-                <button className="panel-resize-btn" onClick={toggleCompact} title={isCompact ? 'Expand' : 'Compact'}>
-                    {isCompact ? '⬜' : '➖'}
-                </button>
+            {/* HEADER */}
+            <div className="panel-header">
+                <div className="ai-status">
+                    <div className="status-dot-pulse"></div>
+                    <span className="status-label">ONLINE</span>
+                </div>
+                {/* Add interactive-stop class to prevent drag when clicking specific elements if needed */}
+                <div className="compact-time interactive-stop" onClick={(e) => {
+                    e.stopPropagation(); // Stop drag start
+                    const newState = !isCompact;
+                    setIsCompact(newState);
+                    localStorage.setItem('hudCompact', newState.toString());
+                }} style={{ cursor: 'pointer' }}>
+                    {isCompact ? 'EXPAND SYSTEM ⇲' : formatCompactTime(time)}
+                </div>
             </div>
 
+            {/* MAIN CONTENT */}
             {!isCompact && (
                 <>
-                    <div className="info-time-section">
-                        <div className="info-time">{formatTime(time)}</div>
-                        <div className="info-date">{formatDate(time)}</div>
+                    <div className="clock-container">
+                        <div className="main-clock">{formatTime(time)}</div>
+                        <div className="date-display">{formatDate(time)}</div>
                     </div>
 
-                    <div className="info-row">
-                        <span className="info-location">📍 {settings.controls?.location ? location.city : 'Location Off'}</span>
-                        <span className="info-status-mini">
-                            <span className="status-dot-mini"></span>
-                            Online
-                        </span>
+                    <div className="system-stats">
+                        <div className="stat-item">
+                            <span>NEURAL SYNC</span>
+                            <span className="stat-value">100%</span>
+                        </div>
+                        <div className="stat-item">
+                            <span>Q-LATENCY</span>
+                            <span className="stat-value">12ms</span>
+                        </div>
+                        <div className="stat-item">
+                            <span>SECURE</span>
+                            <span className="stat-value">TRUE</span>
+                        </div>
+                    </div>
+
+                    <div className="panel-footer">
+                        <div className="location-module">
+                            <span className="loc-icon">📍</span>
+                            <div className="loc-text">
+                                <span className="city-name">{location.city}</span>
+                                <span className="country-name">{location.country}</span>
+                            </div>
+                        </div>
+
                         {weather && (
-                            <div className="info-weather-compact">
-                                <span className="weather-temp-row">
-                                    <span className="weather-emoji">{weather.icon}</span>
-                                    {weather.temp}°C
-                                </span>
-                                <span className="weather-desc-row">{weather.desc}</span>
+                            <div className="weather-module">
+                                <div className="weather-info">
+                                    <div className="temp-main">{weather.temp}°</div>
+                                </div>
+                                <div className="weather-icon-side">
+                                    <span style={{ fontSize: '20px' }}>{weather.icon}</span>
+                                    <div className="weather-desc-mini">{weather.desc}</div>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -253,7 +177,4 @@ const InfoPanel = () => {
         </div>
     );
 };
-
 export default InfoPanel;
-
-

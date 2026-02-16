@@ -111,7 +111,7 @@ export const handleSystemCommand = async (command) => {
     }
 
     // Shutdown System
-    if (cmd.includes("shutdown system") || cmd.includes("turn off computer") || cmd.includes("turn off pc") || cmd.includes("System shutdown")) {
+    if (cmd.includes("shutdown system") || cmd.includes("turn off computer") || cmd.includes("turn off pc") || cmd.includes("system shutdown") || cmd.includes("shutdown")) {
         console.log("Shutting down system...");
         // Shutdown with 10 second delay
         await executePowerShell('shutdown /s /t 10');

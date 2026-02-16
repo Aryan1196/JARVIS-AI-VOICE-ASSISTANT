@@ -65,17 +65,7 @@ const TranscriptTerminal = () => {
         }
     };
 
-    // Drag handler
-    const handleMouseDown = (e) => {
-        if (e.target.closest('.terminal-drag-handle')) {
-            setIsDragging(true);
-            dragOffset.current = {
-                x: e.clientX - position.x,
-                y: e.clientY - position.y
-            };
-            e.preventDefault();
-        }
-    };
+
 
     // Resize handler
     const handleResizeStart = (e, type) => {
@@ -86,11 +76,6 @@ const TranscriptTerminal = () => {
 
     useEffect(() => {
         const handleMouseMove = (e) => {
-            if (isDragging) {
-                const newX = Math.max(0, Math.min(window.innerWidth - 200, e.clientX - dragOffset.current.x));
-                const newY = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dragOffset.current.y));
-                setPosition({ x: newX, y: newY });
-            }
             if (isResizing) {
                 if (resizeType === 'width' || resizeType === 'corner') {
                     const newWidth = Math.max(300, Math.min(800, e.clientX - position.x));
@@ -104,10 +89,6 @@ const TranscriptTerminal = () => {
         };
 
         const handleMouseUp = () => {
-            if (isDragging) {
-                setIsDragging(false);
-                localStorage.setItem('terminalPosition', JSON.stringify(position));
-            }
             if (isResizing) {
                 setIsResizing(false);
                 setResizeType(null);
@@ -115,7 +96,7 @@ const TranscriptTerminal = () => {
             }
         };
 
-        if (isDragging || isResizing) {
+        if (isResizing) {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
         }
@@ -124,7 +105,7 @@ const TranscriptTerminal = () => {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isDragging, isResizing, resizeType, position, size]);
+    }, [isResizing, resizeType, position, size]);
 
     // Play TTS audio for JARVIS response
     const speakResponse = async (text) => {
@@ -272,7 +253,7 @@ const TranscriptTerminal = () => {
 
     return (
         <div
-            className={`transcript-terminal ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
+            className={`transcript-terminal ${isResizing ? 'resizing' : ''}`}
             style={{
                 left: position.x,
                 top: position.y,

@@ -12,6 +12,23 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* GLOBAL FUTURISTIC VARIABLES (Moved from InfoPanel.css) */
+  /* COLORS - NEON PALETTE */
+  --neon-cyan: #00F5FF;
+  --neon-violet: #7B61FF;
+  --neon-success: #00FF9F;
+  --neon-warning: #FFB020;
+  --bg-dark: #050B1F;
+
+  /* GLASSMORPHISM */
+  --glass-bg: rgba(5, 11, 31, 0.85);
+  --glass-border: rgba(0, 245, 255, 0.3);
+  --glass-blur: blur(20px);
+
+  /* SHADOWS & GLOWS */
+  --hud-glow: 0 0 30px rgba(0, 245, 255, 0.15);
+  --text-glow: 0 0 10px rgba(0, 245, 255, 0.5);
 }
 
 body {

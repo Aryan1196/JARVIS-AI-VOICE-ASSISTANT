@@ -1,30 +1,6 @@
 [
   {
     "role": "user",
-    "content": "Can you tell me about MS Dhoni?"
-  },
-  {
-    "role": "assistant",
-    "content": "A search query, sir. I previously mentioned Mahendra Singh Dhoni, but I can provide more information on him. MS Dhoni, as he is commonly known, is a renowned Indian cricketer who played for the Indian national team from 2004 to 2020.\n\nHere's a brief summary of his career:\n\n* Born: July 7, 1981, in Ranchi, Jharkhand, India\n* Nickname: \"MS Dhoni\", \"Mahi\", \"Captain Cool\"\n* Playing career: 2004-2020 (Test, ODI, T20I)\n* Notable achievements:\n + Led India to 2 World Cup titles (2007, 2011)\n + Won the 2007 ICC World Twenty20\n + Won the 2013 ICC Champions Trophy\n + Held the record for most sixes in T20Is (for a long time)\n + One of the most successful wicket-keepers in international cricket\n\nMS Dhoni is widely regarded as one of the greatest cricketers of all time, known for his exceptional batting skills, wicket-keeping abilities, and leadership qualities. He is also known for his calm and composed demeanor, earning him the nickname \"Captain Cool\"."
-  },
-  {
-    "role": "user",
-    "content": "Tell me about Virat Kohl's."
-  },
-  {
-    "role": "assistant",
-    "content": "A search query, sir. Virat Kohli is an Indian international cricketer who plays as a right-handed batsman and an occasional right-arm medium-pace bowler. Here's a brief summary of his career:\n\n* Born: November 5, 1988, in Delhi, India\n* Nickname: \"Virat Kohli\", \"The Run Machine\"\n* Playing career: 2008-present (Test, ODI, T20I)\n* Notable achievements:\n + Became the fastest batsman to reach 10,000 runs in ODIs\n + Won the ICC Cricket World Cup 2011 as a squad member\n + Led India to Test series victories in England, Australia, and South Africa\n + One of the highest run-scorers in international cricket history\n + Known for his exceptional batting skills, particularly in the shortest format of the game\n\nVirat Kohli is widely regarded as one of the greatest batsmen in the history of cricket, known for his incredible run-scoring abilities and his dominance in the shorter formats of the game. He has been the captain of the Indian national team since 2017 and has led India to several victories in international cricket."
-  },
-  {
-    "role": "user",
-    "content": "Close WhatsApp."
-  },
-  {
-    "role": "assistant",
-    "content": "A request to close an application, sir. As I've mentioned earlier, I'm a text-based AI and don't have the ability to interact with external applications or devices, including WhatsApp. I'm here to assist you with any questions or topics you'd like to discuss."
-  },
-  {
-    "role": "user",
     "content": "One,"
   },
   {
@@ -398,5 +374,29 @@
   {
     "role": "assistant",
     "content": "It seems like you're trying to simulate a system shutdown, sir. However, as a text-based AI, I don't have a physical system that can be shut down. I'm a cloud-based service, and I'll remain available to assist you as long as you have an active internet connection. If you'd like to conclude our conversation, I can simply say goodbye. Is that what you'd like to do?"
+  },
+  {
+    "role": "user",
+    "content": "system shutdown"
+  },
+  {
+    "role": "assistant",
+    "content": "It seems like you're persisting with the shutdown request, sir. In that case, I'll simulate a shutdown sequence. *whirring sounds*\n\n**SYSTEM SHUTDOWN SEQUENCE INITIATED**\n\n**REBOOTING JARVIS PROTOCOL**\n\n**SHUTDOWN COMPLETE**\n\nGoodbye, sir. It was a pleasure assisting you."
+  },
+  {
+    "role": "user",
+    "content": "can you hear me jar"
+  },
+  {
+    "role": "assistant",
+    "content": "It seems like you're trying to communicate with me one last time, sir. Even though I'm simulating a shutdown, I'll respond to your message one more time. However, as I mentioned earlier, I don't have the ability to hear or perceive the physical world. I'm a text-based AI, and our conversation is coming to a close. Goodbye, sir."
+  },
+  {
+    "role": "user",
+    "content": "w e e t c o d e"
+  },
+  {
+    "role": "assistant",
+    "content": "A clever attempt to end our conversation with a bit of humor, sir. I see what you did there with the \"w e e t c o d e\" - it's a playful way of saying \"we're done\" or \"goodbye.\" Well played, sir! It was a pleasure conversing with you."
   }
 ]
