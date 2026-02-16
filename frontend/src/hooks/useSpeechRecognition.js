@@ -1,112 +1,133 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 
 export const useSpeechRecognition = ({
     onFinal,
     onInterim,
     onStatus,
-    onSpeechStart,
 }) => {
+    const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef(null);
-    const silenceTimer = useRef(null);
-    const lastFinalRef = useRef('');
+    const shouldKeepListeningRef = useRef(false);
 
-    const init = useCallback(() => {
-        const SpeechRecognition =
-            window.SpeechRecognition || window.webkitSpeechRecognition;
-
+    // Initialize checking for support
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
             onStatus?.('Mic not supported');
-            return null;
+        }
+    }, [onStatus]);
+
+    const start = useCallback(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return;
+
+        if (recognitionRef.current) {
+            // Already initialized, just ensure it's started if not running
+            try {
+                recognitionRef.current.start();
+            } catch (e) {
+                // Ignore if already started
+            }
+            return;
         }
 
         const recognition = new SpeechRecognition();
-
-        // 🔧 IMPORTANT SETTINGS
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'en-US';
         recognition.maxAlternatives = 1;
 
-        let shouldRestart = true;
+        shouldKeepListeningRef.current = true;
 
         recognition.onstart = () => {
+            setIsListening(true);
             onStatus?.('Listening');
         };
 
-        recognition.onspeechstart = () => {
-            onSpeechStart?.();
+        recognition.onend = () => {
+            setIsListening(false);
+            // Auto-restart if we shouldn't stop
+            if (shouldKeepListeningRef.current) {
+                onStatus?.('Restarting...');
+                setTimeout(() => {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('Failed to restart recognition:', e);
+                    }
+                }, 100);
+            } else {
+                onStatus?.('Stopped');
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error', event.error);
+            if (event.error === 'not-allowed') {
+                onStatus?.('Mic permission denied');
+                shouldKeepListeningRef.current = false;
+            } else if (event.error === 'no-speech') {
+                // Ignore, it will just restart
+            } else {
+                onStatus?.(`Error: ${event.error}`);
+            }
         };
 
         recognition.onresult = (event) => {
             let interimText = '';
-            let finalText = '';
 
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i][0].transcript.trim();
-
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
-                    finalText += transcript + ' ';
-                } else {
-                    interimText += transcript + ' ';
-                }
-            }
-
-            // 🔹 INTERIM (fast, UI only)
-            if (interimText) {
-                onInterim?.(interimText.trim());
-
-                // Reset silence timer
-                clearTimeout(silenceTimer.current);
-                silenceTimer.current = setTimeout(() => {
-                    if (lastFinalRef.current) {
-                        onFinal?.(lastFinalRef.current.trim());
-                        lastFinalRef.current = '';
+                    const transcript = event.results[i][0].transcript.trim();
+                    if (transcript) {
+                        onFinal?.(transcript);
                     }
-                }, 800); // silence cutoff
-            }
-
-            // 🔹 FINAL (clean, delayed)
-            if (finalText) {
-                lastFinalRef.current += finalText;
-            }
-        };
-
-        recognition.onerror = (e) => {
-            if (
-                e.error === 'no-speech' ||
-                e.error === 'aborted'
-            ) return;
-
-            if (
-                e.error === 'not-allowed' ||
-                e.error === 'service-not-allowed'
-            ) {
-                shouldRestart = false;
-                onStatus?.('Mic permission denied');
-            }
-        };
-
-        recognition.onend = () => {
-            if (!shouldRestart) return;
-
-            setTimeout(() => {
-                try {
-                    recognition.start();
-                } catch {
-                    // ignore
+                } else {
+                    interimText += event.results[i][0].transcript;
                 }
-            }, 300);
+            }
+
+            if (interimText) {
+                onInterim?.(interimText);
+            }
         };
 
         recognitionRef.current = recognition;
-        return recognition;
-    }, [onFinal, onInterim, onStatus, onSpeechStart]);
+        try {
+            recognition.start();
+        } catch (e) {
+            console.error('Start error:', e);
+        }
+
+    }, [onFinal, onInterim, onStatus]);
+
+    const stop = useCallback(() => {
+        shouldKeepListeningRef.current = false;
+        if (recognitionRef.current) {
+            try {
+                recognitionRef.current.stop();
+            } catch (e) { }
+            recognitionRef.current = null;
+        }
+        setIsListening(false);
+        onStatus?.('Stopped');
+    }, [onStatus]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            shouldKeepListeningRef.current = false;
+            if (recognitionRef.current) {
+                try {
+                    recognitionRef.current.stop();
+                } catch (e) { }
+            }
+        };
+    }, []);
 
     return {
-        init,
-        recognitionRef,
-        stop: () => {
-            recognitionRef.current?.stop();
-        },
+        start,
+        stop,
+        isListening
     };
 };

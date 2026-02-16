@@ -8,9 +8,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import puppeteer from 'puppeteer';
-import axios from 'axios';
 import { generateSpeech } from './tts.js';
 import launcherRoutes from './launcherRoutes.js';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { spawn } from 'child_process';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,7 +25,11 @@ const LOGS_FILE = path.join(__dirname, 'logs.json');
 const KNOWLEDGE_BASE_FILE = path.join(__dirname, 'knowledge-base.json');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: ["https://jarvis-ai-voice-assistant-theta.vercel.app", "http://localhost:5173"],
+    methods: ["GET", "POST"],
+    credentials: true
+}));
 app.use(express.json());
 app.use('/api/launcher', launcherRoutes);
 
@@ -198,6 +204,8 @@ const needsLiveData = (query) => {
 
 // Global Puppeteer Browser Instance
 let globalBrowser = null;
+let browserIdleTimer = null;
+const BROWSER_IDLE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 // Initialize Browser
 const initBrowser = async () => {
@@ -216,13 +224,26 @@ const initBrowser = async () => {
             });
             console.log('[Puppeteer] Global browser initialized.');
         }
+        // Reset idle timer whenever browser is accessed/initialized
+        resetBrowserIdleTimer();
     } catch (error) {
         console.error('[Puppeteer] Failed to initialize global browser:', error);
     }
 };
 
-// Initialize browser on startup
-initBrowser();
+const resetBrowserIdleTimer = () => {
+    if (browserIdleTimer) clearTimeout(browserIdleTimer);
+
+    browserIdleTimer = setTimeout(async () => {
+        if (globalBrowser) {
+            console.log('[Puppeteer] Browser idle for 5 minutes. Closing to save memory...');
+            await globalBrowser.close();
+            globalBrowser = null;
+        }
+    }, BROWSER_IDLE_TIMEOUT);
+};
+
+// Auto-init removed to save memory on startup
 
 // Perform web search using Puppeteer (Headless Browser)
 // Perform web search using Puppeteer (Headless Browser)
@@ -230,6 +251,8 @@ initBrowser();
 const webSearch = async (query) => {
     if (!globalBrowser) {
         await initBrowser();
+    } else {
+        resetBrowserIdleTimer();
     }
 
     let page = null;
@@ -291,6 +314,8 @@ const webSearch = async (query) => {
 const scrapeYouTubeVideo = async (query) => {
     if (!globalBrowser) {
         await initBrowser();
+    } else {
+        resetBrowserIdleTimer();
     }
 
     let page = null;
@@ -449,15 +474,34 @@ app.post('/api/chat', async (req, res) => {
     try {
         const { message } = req.body;
 
+
         if (!message) {
             return res.status(400).json({ error: 'Message is required' });
         }
 
+        // Clean message (remove trailing punctuation like dots or commas)
+        const cleanMessage = message.replace(/[.,;!?]$/, '').trim();
+        console.log(`Processing message: "${message}" -> Cleaned: "${cleanMessage}"`);
+
         // Handle time queries directly - bypass LLM completely
-        if (isTimeQuery(message)) {
-            const response = getTimeForLocation(message);
+        if (isTimeQuery(cleanMessage)) {
+            const response = getTimeForLocation(cleanMessage);
             console.log('Time query handled directly:', response);
             return res.json({ response });
+        }
+
+        // PRIORITY -3: Write Command
+        try {
+            console.log(`[Server] Checking for Write Command: "${cleanMessage}"`);
+            const { handleWriteCommand } = await import('./contentWriter.js');
+            const writeResult = await handleWriteCommand(cleanMessage);
+            console.log(`[Server] Write Command Result:`, writeResult ? (writeResult.executed ? 'Executed' : 'Not executed') : 'Null');
+
+            if (writeResult && writeResult.executed) {
+                return res.json({ response: writeResult.response });
+            }
+        } catch (e) {
+            console.error('[Server] Error in Write Command:', e);
         }
 
         // Check for implicit launcher commands (e.g. "instagram, youtube")
@@ -477,8 +521,10 @@ app.post('/api/chat', async (req, res) => {
 
         // PRIORITY -2: YouTube Control Commands
         try {
+            // Force reload of module? import() in node caches.
+            // But usually dev restart clears cache.
             const { handleYouTubeControlCommand } = await import('./youtubecommand.js');
-            const ytResult = await handleYouTubeControlCommand(message);
+            const ytResult = await handleYouTubeControlCommand(cleanMessage);
             if (ytResult.executed) {
                 console.log('YouTube command executed:', ytResult.action);
                 return res.json({ response: `I have ${ytResult.action.toLowerCase()}.` });
@@ -490,13 +536,25 @@ app.post('/api/chat', async (req, res) => {
         // PRIORITY -1: Chrome Control Commands
         try {
             const { handleChromeCommand } = await import('./chromecontrol.js');
-            const chromeResult = await handleChromeCommand(message);
+            const chromeResult = await handleChromeCommand(cleanMessage);
             if (chromeResult.executed) {
                 console.log('Chrome command executed:', chromeResult.action);
                 return res.json({ response: `I have ${chromeResult.action.toLowerCase()}.` });
             }
         } catch (e) {
             console.error('Error executing Chrome command:', e);
+        }
+
+        // PRIORITY -0.5: System Controls (Volume, etc.)
+        try {
+            const { handleSystemCommand } = await import('./systemControl.js');
+            const systemResult = await handleSystemCommand(cleanMessage);
+            if (systemResult.executed) {
+                console.log('System command executed:', systemResult.message);
+                return res.json({ response: systemResult.message });
+            }
+        } catch (e) {
+            console.error('Error executing system command:', e);
         }
 
         // PRIORITY 0: Check for YouTube commands (Specific routing)
@@ -585,6 +643,46 @@ app.post('/api/chat', async (req, res) => {
         }
 
         // PRIORITY 1: Check for explicit launcher commands
+
+        // Check for explicit "Search for X on Google" (Bypass smart launch)
+        const explicitSearchMatch = message.match(/^search for (.+) on google$/i);
+        if (explicitSearchMatch) {
+            const query = explicitSearchMatch[1].trim();
+            console.log(`Explicit Google Search detected for: "${query}"`);
+            try {
+                const { searchAndOpen } = await import('./launcher.js');
+                const result = await searchAndOpen(query);
+                return res.json({ response: result.message });
+            } catch (e) {
+                console.error('Error in explicit search:', e);
+                return res.json({ response: `I encountered an error searching for ${query}.` });
+            }
+        }
+
+        // Check for "close" command first
+        const closeMatch = message.match(/^(?:close|quit|exit)\s+(.+)/i);
+        if (closeMatch) {
+            const target = closeMatch[1].trim();
+            console.log(`Close command detected for: "${target}"`);
+
+            try {
+                const { closeApp } = await import('./launcher.js');
+                const result = await closeApp(target);
+
+                if (result.success) {
+                    return res.json({ response: result.message });
+                } else {
+                    if (result.isWebsite) {
+                        return res.json({ response: result.message });
+                    }
+                    return res.json({ response: `I couldn't close ${target}. ${result.message}` });
+                }
+            } catch (e) {
+                console.error('Error in close command:', e);
+                return res.json({ response: `I encountered an error trying to close ${target}.` });
+            }
+        }
+
         const launcherPatterns = [
             /(?:open|launch|start|run)\s+(.+)/i,
             /(?:go to|visit)\s+(.+)/i,
@@ -746,12 +844,94 @@ app.get('/api/history', (req, res) => {
     res.json({ history });
 });
 
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: ["https://jarvis-ai-voice-assistant-theta.vercel.app", "http://localhost:5173"],
+        methods: ["GET", "POST"],
+        credentials: true
+    }
+});
+
+let pythonProcess = null;
+
+io.on('connection', (socket) => {
+    console.log('Client connected to WebSocket');
+
+    socket.on('start-speech', () => {
+        console.log('[Socket] Received start-speech request');
+        if (pythonProcess) {
+            console.log('[Socket] Python speech process already running');
+            return;
+        }
+
+        const scriptPath = path.join(__dirname, 'speech_service.py');
+        console.log(`[Socket] Spawning Python script at: ${scriptPath}`);
+
+        try {
+            pythonProcess = spawn('python', [scriptPath]);
+
+            console.log(`[Socket] Process spawned with PID: ${pythonProcess.pid}`);
+
+            pythonProcess.stdout.on('data', (data) => {
+                const str = data.toString();
+                console.log(`[Python stdout] ${str.trim()}`);
+                const lines = str.split('\n');
+                lines.forEach(line => {
+                    if (line.trim()) {
+                        try {
+                            const jsonData = JSON.parse(line);
+                            socket.emit('speech-data', jsonData);
+                        } catch (e) {
+                            console.error('[Socket] Error parsing JSON from Python:', line);
+                        }
+                    }
+                });
+            });
+
+            pythonProcess.stderr.on('data', (data) => {
+                console.error(`[Python stderr] ${data}`);
+            });
+
+            pythonProcess.on('error', (err) => {
+                console.error('[Python spawn error]', err);
+                socket.emit('speech-data', { type: 'error', message: 'Failed to start Python script' });
+            });
+
+            pythonProcess.on('close', (code) => {
+                console.log(`[Socket] Python process exited with code ${code}`);
+                pythonProcess = null;
+                socket.emit('speech-status', 'Stopped');
+            });
+        } catch (e) {
+            console.error('[Socket] Exception spawning process:', e);
+        }
+    });
+
+    socket.on('stop-speech', () => {
+        if (pythonProcess) {
+            console.log('Stopping Python speech service...');
+            pythonProcess.kill();
+            pythonProcess = null;
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
+        if (pythonProcess) {
+            pythonProcess.kill();
+            pythonProcess = null;
+        }
+    });
+});
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`JARVIS backend running on port ${PORT}`);
     console.log('Live web search enabled');
     console.log('Direct time handling enabled');
     console.log('Edge-TTS voice synthesis enabled');
+    console.log('Socket.IO enabled for Python speech recognition');
 });
 
 // TTS endpoint - generates audio from text
@@ -778,54 +958,18 @@ app.post('/api/tts', async (req, res) => {
 });
 
 // Deepgram Token Endpoint
-import { createClient } from "@deepgram/sdk";
-
-app.get("/api/deepgram-token", async (req, res) => {
-  try {
-    const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
-
-    const { result, error } = await deepgram.auth.grantToken();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json({ key: result.access_token });
-
-  } catch (err) {
-    console.error("Token generation error:", err);
-    res.status(500).json({ error: "Failed to generate token" });
-  }
-});
-
-
-// Location Reverse Geocoding Endpoint
-app.get('/api/location', async (req, res) => {
+app.get('/api/deepgram-token', async (req, res) => {
     try {
-        const { lat, lon } = req.query;
-
-        if (!lat || !lon) {
-            return res.status(400).json({ error: 'Latitude and Longitude are required' });
+        if (!process.env.DEEPGRAM_API_KEY) {
+            console.error('Deepgram API Key is missing');
+            return res.status(500).json({ error: 'Deepgram API Key is missing in backend .env' });
         }
 
-        console.log(`Fetching location for Lat: ${lat}, Lon: ${lon}`);
-
-        const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
-            params: {
-                format: 'json',
-                lat: lat,
-                lon: lon
-            },
-            headers: {
-                'User-Agent': 'JarvisVoiceAssistant/1.0' // OpenStreetMap requires a User-Agent
-            }
-        });
-
-        res.json(response.data);
-
+        // Return the key to the frontend
+        res.json({ key: process.env.DEEPGRAM_API_KEY });
     } catch (error) {
-        console.error('Location fetch error:', error.message);
-        res.status(500).json({ error: 'Failed to fetch location data' });
+        console.error('Deepgram token error:', error);
+        res.status(500).json({ error: 'Failed to get Deepgram token' });
     }
 });
 

@@ -26,21 +26,22 @@ An intelligent, voice-controlled desktop assistant inspired by Iron Man's J.A.R.
 
 ## 📚 Detailed User Manual & "How-To" Guide
 
-### 🎥 YouTube Control
+### 🎥 YouTube & Media Control
 JARVIS can find, play, and control YouTube videos without you touching the keyboard.
 
 | Goal | Command Format | Example |
 | :--- | :--- | :--- |
-| **Play a Video** | "Play [Video Name] on YouTube" | "Play Believer by Imagine Dragons on YouTube" |
+| **Play a Video** | "Play [Video Name]" | "Play Believer by Imagine Dragons" |
 | **Search Videos** | "Search [Query] on YouTube" | "Search for funny cat videos on YouTube" |
 | **Open Channel** | "Open [Channel Name] on YouTube" | "Open MrBeast on YouTube" |
+| **Navigation** | "Forward [Time]", "Rewind [Time]" | "Forward 30 seconds", "Rewind 1 minute", "Skip ahead", "Go back" |
 
 **Once a video is playing, you can say:**
 - "Pause video", "Resume video", "Stop video"
 - "Mute", "Unmute"
 - "Full screen", "Theater mode", "Mini player"
-- "Volume up", "Volume down", "Volume 100%"
-- "Skip forward" (5s), "Back 10 seconds"
+- "Volume up", "Volume down", "Volume 50%"
+- "Forward 10 seconds", "Rewind 1 minute"
 - **Speed**: "Speed up", "Slow down"
 
 ### 🌐 Live Web Intelligence
@@ -51,6 +52,7 @@ Simply ask a question that implies **current** or **changing** information. JARV
 
 | Type | Example Command | Results |
 | :--- | :--- | :--- |
+| **Google Search** | "Search for [Query] on Google" | "Search for Atomic Bomb element on Google" (Explicit Search) |
 | **Exchange Rates** | "What is the **current** USD to INR rate?" | "The current exchange rate is roughly 83.50 rupees..." |
 | **News** | "Tell me the **latest** tech news" | Summarizes top headlines from the web. |
 | **Facts** | "Who is the **current** CEO of Twitter?" | "Linda Yaccarino is the CEO..." |
@@ -62,7 +64,7 @@ When you are browsing the web, JARVIS acts as your co-pilot.
 | Action | Commands | Note |
 | :--- | :--- | :--- |
 | **Tabs** | "New tab", "Close tab", "Reopen tab" | |
-| **Switching** | "Switch to tab **1**", "Switch to tab **3**" | Only works for tabs 1-8 and "last tab" (9). |
+| **Switching** | "Switch to tab **1**", "Switch to tab **3**" | Works for tabs 1-8 and "last tab" (9). Parsing improved for "Switching tabs". |
 | **Navigation** | "Go back", "Go forward", "Refresh page" | |
 | **Scrolling** | "Scroll down", "Scroll down **5 times**" | Useful for reading long articles. |
 | **Zoom** | "Zoom in", "Zoom out", "Reset zoom" | |
@@ -71,8 +73,19 @@ When you are browsing the web, JARVIS acts as your co-pilot.
 ### ⚡ System & App Control
 Launch applications and control system settings instantly.
 
-- **System**:
+- **System Volume**:
     - "Set volume to 50%"
+    - "Increase volume by 20%", "Decrease volume"
+    - "Mute", "Unmute"
+- **Advanced System Controls**:
+    - "Lock System", "Sleep Mode"
+    - "Shutdown System", "Turn off PC" (10s delay)
+    - "Open Task Manager"
+    - "Open Settings", "Open File Explorer"
+    - "Take Screenshot", "Open Run Dialog"
+    - "Switch Apps" (Alt+Tab), "Minimize All", "Show Desktop"
+    - "Action Center", "Quick Link Menu"
+- **Brightness**: 
     - "Brightness 100%" (Uses WMI/PowerShell)
 
 ---

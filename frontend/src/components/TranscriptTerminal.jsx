@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useDeepgram } from '../hooks/useDeepgram';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { usePythonSpeech } from '../hooks/usePythonSpeech';
 import { useBlob } from '../context/BlobContext';
 import './TranscriptTerminal.css';
 
-const BACKEND_URL = 'https://jarvis-ai-voice-assistant.onrender.com';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://jarvis-ai-voice-assistant.onrender.com';
 
 const TranscriptTerminal = () => {
     const [logs, setLogs] = useState([]);
@@ -35,7 +35,7 @@ const TranscriptTerminal = () => {
         setLogs((prev) => [...prev.slice(-30), text]);
     };
 
-    const handleStatus = (msg) => {
+    const handleStatus = useCallback((msg) => {
         setStatus((prev) => {
             if (prev !== msg) {
                 // Check if the last log is identical to avoid spam
@@ -49,7 +49,7 @@ const TranscriptTerminal = () => {
             }
             return msg;
         });
-    };
+    }, []);
 
     // Stop current audio and cancel pending requests
     const stopCurrentRequest = () => {
@@ -197,40 +197,37 @@ const TranscriptTerminal = () => {
 
     const lastTranscriptRef = useRef({ text: '', time: 0 });
 
-    const { start, stop, isListening } = useDeepgram({
-        onFinal: (finalText) => {
-            // Barge-in: Stop any current TTS or processing immediately
-            stopCurrentRequest();
+    const onFinalCallback = useCallback((finalText) => {
+        // Barge-in: Stop any current TTS or processing immediately
+        stopCurrentRequest();
 
-            // Normalize text for dedup (remove all non-alphanumeric chars including spaces)
-            const normalize = (text) => text.toLowerCase().replace(/[^a-z0-9]/g, '');
+        // Normalize text for dedup (remove all non-alphanumeric chars including spaces)
+        const normalize = (text) => text.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-            const cleanFinal = normalize(finalText);
-            const cleanLast = normalize(lastTranscriptRef.current.text);
+        const cleanFinal = normalize(finalText);
+        const cleanLast = normalize(lastTranscriptRef.current.text);
 
-            const now = Date.now();
+        const now = Date.now();
 
-            // Dedup check: 
-            // 1. If normalized text is identical within 3 seconds (was 2s)
-            // 2. Or if the new text is a substring of the last text (e.g. "open chat" vs "open chatgpt") within 1s
-            if (cleanLast && (now - lastTranscriptRef.current.time) < 3000) {
-                if (cleanFinal === cleanLast) {
-                    console.log('Ignored duplicate transcript (exact match):', finalText);
-                    return;
-                }
-                // Optional: Ignore if new text is just a subset (e.g. "open" vs "open youtube")
-                // But user might correct themselves "open... open youtube". 
-                // Let's stick to exact match of normalized string for now.
+        // Dedup check: 
+        if (cleanLast && (now - lastTranscriptRef.current.time) < 3000) {
+            if (cleanFinal === cleanLast) {
+                console.log('Ignored duplicate transcript (exact match):', finalText);
+                return;
             }
+        }
 
-            if (!cleanFinal) return; // Ignore empty after normalization
+        if (!cleanFinal) return; // Ignore empty after normalization
 
-            lastTranscriptRef.current = { text: finalText, time: now };
+        lastTranscriptRef.current = { text: finalText, time: now };
 
-            setInterim('');
-            addLog(`>> USER: ${finalText}`);
-            askJarvis(finalText);
-        },
+        setInterim('');
+        addLog(`>> USER: ${finalText}`);
+        askJarvis(finalText);
+    }, []);
+
+    const { start, stop, isListening } = usePythonSpeech({
+        onFinal: onFinalCallback,
         onInterim: (interimText) => {
             // Barge-in: Silence TTS immediately on interim speech detection
             if (isSpeakingRef.current) {
@@ -282,7 +279,6 @@ const TranscriptTerminal = () => {
                 width: size.width,
                 height: size.height
             }}
-            onMouseDown={handleMouseDown}
         >
             {/* Resize handles */}
             <div className="terminal-resize-handle resize-right" onMouseDown={(e) => handleResizeStart(e, 'width')}></div>
@@ -290,7 +286,7 @@ const TranscriptTerminal = () => {
             <div className="terminal-resize-handle resize-corner" onMouseDown={(e) => handleResizeStart(e, 'corner')}></div>
 
             <div className="terminal-header terminal-drag-handle">
-                <span className="drag-dots">⋮⋮</span>
+                {/* Drag disabled */}
                 <span className="status-indicator" style={{
                     background: status === 'Listening' ? '#00ff88' :
                         status.includes('off') ? '#ff4444' :

@@ -35,11 +35,22 @@ export const handleChromeCommand = async (command) => {
 
     try {
         // TABS
-        if (cmd.includes("new tab")) {
+        // ADDRESS BAR
+        if (cmd.includes("focus address")) {
+            keys = '^l'; // or Alt + D
+            action = "Focused address bar";
+        }
+        else if (cmd.includes("open file")) {
+            keys = '^o';
+            action = "Opened file dialog";
+        }
+
+        // TABS
+        else if (cmd.includes("new tab")) {
             keys = '^t';
             action = "Opened a new tab";
         }
-        else if (cmd.includes("close tab") || cmd.includes("close current tab")) {
+        else if (cmd.includes("close tab") || cmd.includes("close this tab")) {
             keys = '^w';
             action = "Closed the current tab";
         }
@@ -63,19 +74,32 @@ export const handleChromeCommand = async (command) => {
             keys = '^9';
             action = "Switched to last tab";
         }
-        else if (cmd.includes("switch to tab") || cmd.includes("go to tab")) {
-            const match = cmd.match(/(?:switch|go) to tab\s+(\d+)/);
+        else if (cmd.includes("switch to tab") || cmd.includes("go to tab") || cmd.includes("switch tab") || cmd.includes("switching tab")) {
+            // Matches: "switch to tab 3", "switch to tab number 3", "switch tab 3", "switching tab 3"
+            // Also supports words: "switch to tab number four"
+            const match = cmd.match(/(?:switch(?:ing)?|go)(?: to)? tabs?(?: number)?\s+([a-z0-9]+)/i);
             if (match) {
-                const tabNum = parseInt(match[1]);
-                if (tabNum >= 1 && tabNum <= 8) {
-                    keys = `^${tabNum}`;
-                    action = `Switched to tab ${tabNum}`;
-                } else if (tabNum === 9) {
-                    keys = '^9';
-                    action = "Switched to tab 9 (or last tab)";
-                } else {
-                    // Error handling as requested
-                    return { executed: false, action: '', error: `Tab ${tabNum} is out of range. I can only switch to tabs 1-8 directly, or 9 for the last tab.` };
+                const numMap = {
+                    'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+                    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+                };
+                let val = match[1];
+                let tabNum = parseInt(val);
+
+                if (isNaN(tabNum)) {
+                    tabNum = numMap[val.toLowerCase()];
+                }
+
+                if (tabNum) {
+                    if (tabNum >= 1 && tabNum <= 8) {
+                        keys = `^${tabNum}`;
+                        action = `Switched to tab ${tabNum}`;
+                    } else if (tabNum === 9) {
+                        keys = '^9';
+                        action = "Switched to last tab";
+                    } else {
+                        return { executed: false, action: '', error: `Tab ${tabNum} is out of range. I can only switch to tabs 1-8 directly, or 9 for the last tab.` };
+                    }
                 }
             }
         }
@@ -111,11 +135,11 @@ export const handleChromeCommand = async (command) => {
             keys = '%{RIGHT}';
             action = "Went forward";
         }
-        else if (cmd.includes("home")) {
+        else if (/\bhome\b/i.test(cmd)) {
             keys = '{HOME}';
             action = "Went to top of page";
         }
-        else if (cmd.includes("end")) {
+        else if (/\bend\b/i.test(cmd)) {
             keys = '{END}';
             action = "Went to bottom of page";
         }
@@ -180,15 +204,7 @@ export const handleChromeCommand = async (command) => {
             action = "Opened Downloads";
         }
 
-        // ADDRESS BAR
-        else if (cmd.includes("focus address") || cmd.includes("search bar")) {
-            keys = '^l'; // or Alt + D
-            action = "Focused address bar";
-        }
-        else if (cmd.includes("open file")) {
-            keys = '^o';
-            action = "Opened file dialog";
-        }
+
 
         // SYSTEM: BRIGHTNESS
         else if (cmd.includes("brightness")) {

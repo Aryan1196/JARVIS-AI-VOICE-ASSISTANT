@@ -43,7 +43,8 @@
             "weather",
             "news",
             "update",
-            "trending"
+            "trending",
+            "right now"
         ],
         "voice_triggers": [
             "say",

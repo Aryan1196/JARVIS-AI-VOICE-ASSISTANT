@@ -64,29 +64,64 @@ export const handleYouTubeControlCommand = async (command) => {
 
             action = `Set volume to ${targetVol}%`;
         }
-        else if (cmd.includes("volume up") || cmd.includes("louder")) {
+        else if (cmd.includes("increase volume") || cmd.includes("louder")) {
             keys = '{UP}';
             action = "Increased volume";
         }
-        else if (cmd.includes("volume down") || cmd.includes("quieter")) {
+        else if (cmd.includes("decrease volume") || cmd.includes("quieter")) {
             keys = '{DOWN}';
             action = "Decreased volume";
         }
 
         // SEEKING
-        else if (cmd.includes("forward 5") || cmd.includes("skip forward") || cmd.includes("skip 5 seconds")) {
+        // Dynamic Forward/Rewind
+        const seekMatch = cmd.match(/(?:forward|rewind|back|skip|go back|go forward)\s+(?:by\s+)?(\d+)?\s*(seconds?|minutes?|secs?|mins?)?/i);
+        if (seekMatch) {
+            let amount = parseInt(seekMatch[1]) || 10; // Default to 10 if number not specified but command matched
+            const unit = seekMatch[2];
+
+            if (unit && unit.startsWith('min')) {
+                amount *= 60;
+            }
+
+            const isRewind = cmd.includes("back") || cmd.includes("rewind");
+            const direction = isRewind ? "Rewind" : "Forward";
+
+            // Calculate key presses
+            // YouTube: 'l'/'j' = 10s, Right/Left = 5s
+            // We'll prioritize 10s jumps for speed
+
+            let tenSeconds = Math.floor(amount / 10);
+            let remainder = amount % 10;
+            let fiveSeconds = Math.round(remainder / 5);
+
+            let keySeq = '';
+
+            if (isRewind) {
+                keySeq = 'j'.repeat(tenSeconds) + '{LEFT}'.repeat(fiveSeconds);
+            } else {
+                keySeq = 'l'.repeat(tenSeconds) + '{RIGHT}'.repeat(fiveSeconds);
+            }
+
+            if (keySeq) {
+                keys = keySeq;
+                action = `${direction} ${amount} seconds`;
+            }
+        }
+
+        else if (cmd.includes("forward five") || cmd.includes("skip forward") || cmd.includes("skip five seconds")) {
             keys = '{RIGHT}';
             action = "Skipped forward 5 seconds";
         }
-        else if (cmd.includes("back 5") || cmd.includes("skip back") || cmd.includes("rewind")||cmd.includes("skip 5 seconds back")) {
-            keys = '{LEFT}';
+        else if (cmd.includes("back five") || cmd.includes("skip back") || cmd.includes("rewind") || cmd.includes("skip five seconds back")) {
+            keys = '{LEFT}'; // Standard rewind (5s)
             action = "Skipped back 5 seconds";
         }
-        else if (cmd.includes("forward 10")||cmd.includes("skip 10 seconds")) {
+        else if (cmd.includes("forward ten") || cmd.includes("skip ten seconds")) {
             keys = 'l';
             action = "Skipped forward 10 seconds";
         }
-        else if (cmd.includes("back 10")||cmd.includes("rewind 10 seconds")) {
+        else if (cmd.includes("move back ten") || cmd.includes("rewind ten") || cmd.includes("back ten")) {
             keys = 'j';
             action = "Skipped back 10 seconds";
         }
@@ -108,7 +143,7 @@ export const handleYouTubeControlCommand = async (command) => {
         // SPEED
         // Shift + . is > (Speed Up)
         // Shift + , is < (Slow Down)
-        else if (cmd.includes("speed up")) {
+        else if (cmd.includes("speed up") || cmd.includes("increase playbackspeed")) {
             keys = '+{.}{.}{.}{.}'; // Send it multiple times? No, just once usually implies one step.
             // But SendKeys special chars need braces? 
             // . is not special, but > is shift+. 
@@ -117,7 +152,7 @@ export const handleYouTubeControlCommand = async (command) => {
             keys = '+.';
             action = "Increased playback speed";
         }
-        else if (cmd.includes("slow down")) {
+        else if (cmd.includes("slow down") || cmd.includes("decrease playbackspeed")) {
             keys = '+,'; // <
             action = "Decreased playback speed";
         }

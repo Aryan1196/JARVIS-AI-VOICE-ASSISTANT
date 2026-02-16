@@ -4,6 +4,7 @@ import LandingPage from './components/LandingPage';
 import Navbar from './components/Navbar';
 import ControlsPage from './components/ControlsPage';
 import SettingsPage from './components/SettingsPage';
+import UserManual from './components/UserManual';
 import { BlobProvider } from './context/BlobContext';
 
 
@@ -17,6 +18,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/controls" element={<ControlsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/manual" element={<UserManual />} />
           </Routes>
         </div>
       </Router>

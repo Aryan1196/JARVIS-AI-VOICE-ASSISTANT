@@ -1,160 +1,139 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
 
-// Forces deployment rebuild: v1
-const BACKEND_URL = 'https://jarvis-ai-voice-assistant.onrender.com';
+import { useEffect, useRef, useState, useCallback } from 'react';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://jarvis-ai-voice-assistant.onrender.com';
 
 export const useDeepgram = ({ onFinal, onInterim, onStatus }) => {
     const [isListening, setIsListening] = useState(false);
     const socketRef = useRef(null);
     const mediaRecorderRef = useRef(null);
     const streamRef = useRef(null);
-    const keepAliveInterval = useRef(null);
-    const connectingRef = useRef(false);
+    const keepAliveRef = useRef(null);
 
-    // Use refs for callbacks to avoid dependency cycles
-    const onFinalRef = useRef(onFinal);
-    const onInterimRef = useRef(onInterim);
-    const onStatusRef = useRef(onStatus);
+    // Use refs for callbacks to avoid re-creating 'start' when they change
+    const callbacksRef = useRef({ onFinal, onInterim, onStatus });
 
+    // Update refs whenever props change
     useEffect(() => {
-        onFinalRef.current = onFinal;
-        onInterimRef.current = onInterim;
-        onStatusRef.current = onStatus;
+        callbacksRef.current = { onFinal, onInterim, onStatus };
     }, [onFinal, onInterim, onStatus]);
 
-    const cleanup = useCallback(() => {
-        connectingRef.current = false;
-        if (socketRef.current) {
-            if (socketRef.current.readyState === WebSocket.OPEN) {
-                socketRef.current.close();
-            }
-            socketRef.current = null;
+    const getApiKey = async () => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/deepgram-token`);
+            const data = await response.json();
+            return data.key;
+        } catch (error) {
+            console.error('Error fetching Deepgram API key:', error);
+            callbacksRef.current.onStatus?.('Auth Error');
+            return null;
         }
-        if (mediaRecorderRef.current) {
-            if (mediaRecorderRef.current.state !== 'inactive') {
-                mediaRecorderRef.current.stop();
-            }
-            mediaRecorderRef.current = null;
+    };
+
+    const start = useCallback(async () => {
+        if (socketRef.current?.readyState === WebSocket.OPEN) return;
+
+        try {
+            const apiKey = await getApiKey();
+            if (!apiKey) return;
+
+            callbacksRef.current.onStatus?.('Connecting...');
+
+            // Get microphone permission and stream
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            streamRef.current = stream;
+
+            // Connect to Deepgram WebSocket with Protocols for Auth
+            const socket = new WebSocket('wss://api.deepgram.com/v1/listen?smart_format=true&model=nova-2&language=en-US&interim_results=true', [
+                'token',
+                apiKey
+            ]);
+            socketRef.current = socket;
+
+            socket.onopen = () => {
+                callbacksRef.current.onStatus?.('Listening');
+                setIsListening(true);
+
+                // Send API key for authentication (Legacy/Fallback, protocol usually handles it)
+                socket.send(JSON.stringify({ type: 'KeepAlive' }));
+
+                // Setup MediaRecorder to send audio data
+                const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                mediaRecorderRef.current = mediaRecorder;
+
+                mediaRecorder.addEventListener('dataavailable', (event) => {
+                    if (event.data.size > 0 && socket.readyState === 1) {
+                        socket.send(event.data);
+                    }
+                });
+
+                mediaRecorder.start(250); // Send chunks every 250ms
+
+                // Keep connection alive
+                keepAliveRef.current = setInterval(() => {
+                    if (socket.readyState === 1) {
+                        socket.send(JSON.stringify({ type: 'KeepAlive' }));
+                    }
+                }, 3000);
+            };
+
+            socket.onmessage = (message) => {
+                const received = JSON.parse(message.data);
+                const transcript = received.channel?.alternatives[0]?.transcript;
+
+                if (transcript && received.is_final) {
+                    callbacksRef.current.onFinal?.(transcript);
+                } else if (transcript) {
+                    callbacksRef.current.onInterim?.(transcript);
+                }
+            };
+
+            socket.onclose = () => {
+                callbacksRef.current.onStatus?.('Disconnected');
+                setIsListening(false);
+                cleanup();
+            };
+
+            socket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                callbacksRef.current.onStatus?.('Connection Error');
+            };
+
+        } catch (error) {
+            console.error('Microphone or connection error:', error);
+            callbacksRef.current.onStatus?.('Mic Error');
+            cleanup();
+        }
+    }, []); // Dependencies are stable now
+
+    const stop = useCallback(() => {
+        cleanup();
+        callbacksRef.current.onStatus?.('Stopped');
+        setIsListening(false);
+    }, []);
+
+    const cleanup = () => {
+        if (keepAliveRef.current) {
+            clearInterval(keepAliveRef.current);
+            keepAliveRef.current = null;
+        }
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop();
         }
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
             streamRef.current = null;
         }
-        if (keepAliveInterval.current) {
-            clearInterval(keepAliveInterval.current);
-            keepAliveInterval.current = null;
+        if (socketRef.current && socketRef.current.readyState === 1) {
+            socketRef.current.close();
+            socketRef.current = null;
         }
-        setIsListening(false);
-    }, []);
+    };
 
-    const start = useCallback(async () => {
-        // Prevent multiple starts or if already connecting
-        if (connectingRef.current || (socketRef.current && socketRef.current.readyState !== WebSocket.CLOSED)) return;
-
-        try {
-            connectingRef.current = true;
-            cleanup();
-            onStatusRef.current?.('Connecting...');
-
-            // 1. Get Setup Key from Backend
-            const response = await fetch(`${BACKEND_URL}/api/deepgram-token`);
-            if (!response.ok) throw new Error('Failed to get Deepgram token');
-            const { key } = await response.json();
-
-            if (!key) throw new Error('No API key returned');
-
-            // 2. Open WebSocket to Deepgram
-            const dgUrl = `wss://api.deepgram.com/v1/listen?smart_format=true&model=nova-2&language=en-US&interim_results=true&endpointing=3000`;
-            const socket = new WebSocket(`wss://api.deepgram.com/v1/listen?smart_format=true&model=nova-2&language=en-US&interim_results=true&endpointing=3000&token=${key}`
-
-            );
-
-            socketRef.current = socket;
-            connectingRef.current = false;
-
-            socket.onopen = async () => {
-                onStatusRef.current?.('Listening');
-                setIsListening(true);
-
-                try {
-                    // 3. Get Microphone Stream
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        audio: {
-                            echoCancellation: true,
-                            noiseSuppression: true,
-                            autoGainControl: true
-                        }
-                    });
-                    streamRef.current = stream;
-
-                    // 4. Create MediaRecorder to stream audio
-                    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-                    mediaRecorderRef.current = mediaRecorder;
-
-                    mediaRecorder.addEventListener('dataavailable', event => {
-                        if (event.data.size > 0 && socket.readyState === 1) {
-                            socket.send(event.data);
-                        }
-                    });
-
-                    mediaRecorder.start(250); // Send chunks every 250ms
-
-                    // Keep connection alive
-                    keepAliveInterval.current = setInterval(() => {
-                        if (socket.readyState === 1) {
-                            socket.send(JSON.stringify({ type: 'KeepAlive' }));
-                        }
-                    }, 3000);
-                } catch (micError) {
-                    console.error('Microphone error:', micError);
-                    onStatusRef.current?.('Mic Error');
-                    socket.close();
-                }
-            };
-
-            socket.onmessage = (message) => {
-                const received = JSON.parse(message.data);
-
-                if (received.channel && received.channel.alternatives[0]) {
-                    const transcript = received.channel.alternatives[0].transcript;
-
-                    if (transcript && received.is_final) {
-                        if (transcript.trim().length > 0) {
-                            onFinalRef.current?.(transcript);
-                        }
-                    } else if (transcript) {
-                        onInterimRef.current?.(transcript);
-                    }
-                }
-            };
-
-            socket.onclose = () => {
-                console.log('Deepgram connection closed');
-                setIsListening(false);
-            };
-
-            socket.onerror = (error) => {
-                console.error('Deepgram WebSocket error:', error);
-                onStatusRef.current?.('Connection Error');
-                // Do not auto-cleanup here to avoid state thrashing, let onclose handle it
-            };
-
-        } catch (error) {
-            connectingRef.current = false;
-            console.error('Error starting Deepgram:', error);
-            onStatusRef.current?.('Connection Failed');
-            cleanup();
-        }
-    }, [cleanup]); // Dependencies removed: onStatus, onFinal, onInterim
-
-    const stop = useCallback(() => {
-        cleanup();
-        onStatusRef.current?.('Stopped');
-    }, [cleanup]);
-
+    // Cleanup on unmount
     useEffect(() => {
         return () => cleanup();
-    }, [cleanup]);
+    }, []);
 
     return { start, stop, isListening };
 };

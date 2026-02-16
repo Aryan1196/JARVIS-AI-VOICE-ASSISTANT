@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import './InfoPanel.css';
 import { useBlob } from '../context/BlobContext';
 
-const BACKEND_URL = 'https://jarvis-ai-voice-assistant.onrender.com';
-
 const InfoPanel = () => {
     const [time, setTime] = useState(new Date());
     const [weather, setWeather] = useState(null);
@@ -53,7 +51,7 @@ const InfoPanel = () => {
                 async (position) => {
                     try {
                         const { latitude, longitude } = position.coords;
-                        const response = await fetch(`${BACKEND_URL}/api/location?lat=${latitude}&lon=${longitude}`);
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                         const data = await response.json();
 
                         // Extract city
@@ -213,7 +211,6 @@ const InfoPanel = () => {
                 width: isCompact ? 'auto' : panelWidth,
                 height: isCompact ? 'auto' : (panelHeight > 0 ? panelHeight : 'auto')
             }}
-            onMouseDown={handleMouseDown}
         >
             {/* Resize handles */}
             <div className="panel-resize-handle resize-right" onMouseDown={(e) => handleResizeStart(e, 'width')}></div>
@@ -221,7 +218,7 @@ const InfoPanel = () => {
             <div className="panel-resize-handle resize-corner" onMouseDown={(e) => handleResizeStart(e, 'corner')}></div>
 
             <div className="panel-drag-handle">
-                <span className="drag-dots">⋮⋮</span>
+                {/* Drag disabled */}
                 <span className="info-greeting">{isCompact ? formatTime(time) : `${getGreeting()}, Sir`}</span>
                 <button className="panel-resize-btn" onClick={toggleCompact} title={isCompact ? 'Expand' : 'Compact'}>
                     {isCompact ? '⬜' : '➖'}

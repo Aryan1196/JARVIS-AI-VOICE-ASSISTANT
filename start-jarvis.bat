@@ -18,4 +18,4 @@ echo Frontend: https://jarvis-ai-voice-assistant-theta.vercel.app/
 echo.
 echo Opening JARVIS in your browser...
 timeout /t 3 /nobreak > nul
-start https://jarvis-ai-voice-assistant-theta.vercel.app/
+start http://localhost:5173/

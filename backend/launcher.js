@@ -150,6 +150,7 @@ const WEBSITES = {
     'google drive': 'https://drive.google.com',
     'calendar': 'https://calendar.google.com',
     'speed test': 'https://www.speedtest.net',
+    'manga website': 'https://mangafire.to',
 
     // Local / Dev
     'localhost': 'https://jarvis-ai-voice-assistant-theta.vercel.app/',
@@ -537,4 +538,105 @@ export const handleYouTubeCommand = async (command) => {
 
     console.log(`[YouTube Router] Search URL: ${searchUrl}`);
     return await openWebsite(searchUrl);
+};
+
+// Map of friendly app names to their process names (for taskkill)
+const PROCESS_MAP = {
+    'chrome': 'chrome.exe',
+    'google chrome': 'chrome.exe',
+    'firefox': 'firefox.exe',
+    'edge': 'msedge.exe',
+    'microsoft edge': 'msedge.exe',
+    'brave': 'brave.exe',
+    'notepad': 'notepad.exe',
+    'calculator': 'CalculatorApp.exe', // Modern windows calc
+    'calc': 'CalculatorApp.exe',
+    'whatsapp': 'WhatsApp.Root.exe',
+    'spotify': 'Spotify.exe',
+    'discord': 'Discord.exe',
+    'vlc': 'vlc.exe',
+    'word': 'WINWORD.EXE',
+    'excel': 'EXCEL.EXE',
+    'powerpoint': 'POWERPNT.EXE',
+    'vscode': 'Code.exe',
+    'visual studio code': 'Code.exe',
+    'cmd': 'cmd.exe',
+    'command prompt': 'cmd.exe',
+    'powershell': 'powershell.exe',
+    'steam': 'steam.exe',
+    'obs': 'obs64.exe',
+    'task manager': 'Taskmgr.exe'
+};
+
+/**
+ * Close an application by name
+ */
+export const closeApp = async (appName) => {
+    const lowerName = appName.toLowerCase().trim();
+    console.log(`[DEBUG] closeApp called for: "${appName}" (lower: "${lowerName}")`);
+
+    // Check if it's a website first
+    if (WEBSITES[lowerName] || lowerName.includes('.com')) {
+        console.log(`[DEBUG] Identified as website: ${lowerName}`);
+        return {
+            success: false,
+            message: `I cannot close specific websites like ${appName} directly. Please use "Close tab" to close the current tab.`,
+            isWebsite: true
+        };
+    }
+    console.log(`[DEBUG] Not a website, checking process map...`);
+
+    // Check mapping or assume name matches process
+    let processName = PROCESS_MAP[lowerName];
+
+    if (!processName) {
+        // Try to guess process name (e.g. "notepad++" -> "notepad++.exe")
+        // Remove spaces and special chars
+        processName = lowerName.replace(/\s+/g, '') + '.exe';
+    }
+
+    try {
+        console.log(`Attempting to close ${appName} (Process: ${processName})`);
+
+        // Try taskkill first
+        try {
+            const command = `taskkill /IM "${processName}" /F`;
+            await execAsync(command);
+        } catch (taskkillError) {
+            // If taskkill fails, try PowerShell Stop-Process (better for strict permissions)
+            // AND handle UWP naming conventions if needed
+            if (processName.toLowerCase() === 'whatsapp.root.exe' || processName.toLowerCase() === 'notepad.exe') {
+                console.log(`Taskkill failed, trying PowerShell Stop-Process for ${processName}`);
+                // Remove .exe for Stop-Process -Name, but for WhatsApp.Root it might need just "WhatsApp" or "WhatsApp.Root"
+                let procNameNoExt = processName.replace('.exe', '');
+
+                const psCommand = `powershell -Command "Stop-Process -Name '${procNameNoExt}' -Force -ErrorAction SilentlyContinue"`;
+                await execAsync(psCommand);
+            } else {
+                throw taskkillError;
+            }
+        }
+
+        return {
+            success: true,
+            message: `Closed ${appName}.`,
+            process: processName
+        };
+    } catch (error) {
+        // Check if error is "process not found"
+        if (error.message.includes('not found')) {
+            return {
+                success: false,
+                message: `I couldn't find a running process for ${appName}.`,
+                error: 'Process not found'
+            };
+        }
+
+        console.error(`Error closing ${appName}:`, error.message);
+        return {
+            success: false,
+            message: `Failed to close ${appName}.`,
+            error: error.message
+        };
+    }
 };
