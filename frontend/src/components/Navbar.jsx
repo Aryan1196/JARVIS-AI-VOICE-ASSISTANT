@@ -9,10 +9,9 @@ const Navbar = () => {
 
             <ul className="nav-links">
                 <li><Link to="/" className="nav-link">HOME</Link></li>
-                <li><a href="#systems" className="nav-link">SYSTEMS</a></li>
                 <li><Link to="/controls" className="nav-link">CONTROLS</Link></li>
-                <li><Link to="/settings" className="nav-link">SETTINGS</Link></li>
-                <li><Link to="/manual" className="nav-link">ABOUT</Link></li>
+                <li><Link to="/manual" className="nav-link">USER MANUAL</Link></li>
+                <li><Link to="/about" className="nav-link">ABOUT</Link></li>
             </ul>
 
             <div className="nav-actions">

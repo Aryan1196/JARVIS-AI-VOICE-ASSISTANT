@@ -28,28 +28,32 @@ const UserManual = () => {
                 <h2>🎥 YouTube & Media Control</h2>
                 <div className="command-grid">
                     <div className="command-card">
-                        <h3>Playback</h3>
+                        <h3>Core Commands</h3>
                         <ul>
-                            <li>"Play [Video Name]"</li>
+                            <li><strong>"Open YouTube"</strong>: Opens the YouTube website.</li>
+                            <li><strong>"Search for [X] on YouTube"</strong>: Opens YouTube and searches for [X].</li>
+                            <li><strong>"Play [X]"</strong>: Searches for [X] and immediately plays the first video.</li>
+                        </ul>
+                    </div>
+                    <div className="command-card">
+                        <h3>Playback Controls</h3>
+                        <ul>
                             <li>"Pause video", "Resume video"</li>
-                            <li>"Stop video"</li>
+                            <li>"Stop video", "Replay video"</li>
+                            <li>"Mute video", "Unmute video"</li>
+                            <li>"Volume up/down", "Set volume to 50%"</li>
                         </ul>
                     </div>
                     <div className="command-card">
-                        <h3>Navigation</h3>
+                        <h3>Advanced Features</h3>
                         <ul>
-                            <li>"Forward [Time]" (e.g., "Forward 10 seconds")</li>
-                            <li>"Rewind [Time]" (e.g., "Rewind 1 minute")</li>
-                            <li>"Skip ahead", "Go back"</li>
-                        </ul>
-                    </div>
-                    <div className="command-card">
-                        <h3>Volume & Speed</h3>
-                        <ul>
-                            <li>"Volume up", "Volume down"</li>
-                            <li>"Set volume to 50%"</li>
-                            <li>"Speed up", "Slow down"</li>
-                            <li>"Mute", "Unmute"</li>
+                            <li>"Full Screen", "Exit Full Screen"</li>
+                            <li>"Theater Mode", "Exit Theater Mode"</li>
+                            <li>"Miniplayer Mode", "Exit Miniplayer"</li>
+                            <li>"Skip Ad", "Close Ad"</li>
+                            <li>"Forward 10s", "Rewind 10s"</li>
+                            <li>"Speed up (2x)", "Slow down (0.5x)"</li>
+                            <li>"Next video", "Previous video"</li>
                         </ul>
                     </div>
                 </div>
@@ -85,6 +89,20 @@ const UserManual = () => {
                             <li>"Action Center"</li>
                         </ul>
                     </div>
+                </div>
+            </section>
+
+            <section className="manual-section">
+                <h2>✍️ Content Creation</h2>
+                <div className="command-card">
+                    <p>JARVIS can act as your personal writer. Ask it to draft emails, write articles, or generate code.</p>
+                    <ul>
+                        <li><strong>"Write an email to [Name] about [Topic]"</strong>: Drafts a professional email.</li>
+                        <li><strong>"Write an article on [Topic]"</strong>: Generates a structured article or blog post.</li>
+                        <li><strong>"Write a poem about [Topic]"</strong>: Creates creative poetry.</li>
+                        <li><strong>"Write a Python script to [Task]"</strong>: Generates functional code snippet.</li>
+                    </ul>
+                    <code className="command-code">"Write a formal email to my boss asking for leave."</code>
                 </div>
             </section>
 

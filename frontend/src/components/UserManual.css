@@ -1,11 +1,13 @@
 .user-manual-container {
     padding: 100px 40px 40px;
-    /* Top padding clears fixed navbar */
     color: #fff;
     font-family: 'Segoe UI', sans-serif;
     max-width: 1200px;
     margin: 0 auto;
     animation: fadeIn 0.5s ease-out;
+    height: 100vh;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 @keyframes fadeIn {
