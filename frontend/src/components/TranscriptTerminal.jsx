@@ -110,6 +110,7 @@ const TranscriptTerminal = () => {
             }
             if (isResizing) {
                 setIsResizing(false);
+                setResizeType(null);
                 localStorage.setItem('terminalSize', JSON.stringify(size));
             }
         };
@@ -124,32 +125,6 @@ const TranscriptTerminal = () => {
             document.removeEventListener('mouseup', handleMouseUp);
         };
     }, [isDragging, isResizing, resizeType, position, size]);
-
-    // Background Keep-Alive: Play silent audio to prevent tab throttling
-    useEffect(() => {
-        // Tiny silent loop
-        const audio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
-        audio.loop = true;
-        audio.volume = 0.001; // Virtually silent but active
-
-        const playAudio = () => {
-            audio.play().catch(e => {
-                // Autoplay policy might block this until interaction
-                // console.log('Keep-alive audio waiting for interaction');
-            });
-        };
-
-        playAudio();
-        document.addEventListener('click', playAudio, { once: true });
-        document.addEventListener('keydown', playAudio, { once: true });
-
-        return () => {
-            audio.pause();
-            audio.src = '';
-            document.removeEventListener('click', playAudio);
-            document.removeEventListener('keydown', playAudio);
-        };
-    }, []);
 
     // Play TTS audio for JARVIS response
     const speakResponse = async (text) => {
@@ -272,12 +247,23 @@ const TranscriptTerminal = () => {
             return;
         }
 
-        // Initial start if mic is enabled
-        if (!isListening && settings.controls?.mic !== false && !startedRef.current) {
+        // Only auto-start if not already listening and not explicitly stopped by user action (though here we assume auto-always)
+        if (!isListening) {
             start();
-            startedRef.current = true;
         }
-    }, [settings.controls?.mic, start, stop]); // Removed isListening from deps to prevent loops
+
+    }, [settings.controls?.mic, isListening, start, stop]); // Re-run when mic setting changes or listening state changes
+
+    // Click to wake up (optional, mostly for when it drops)
+    useEffect(() => {
+        const handleClick = () => {
+            if (settings.controls?.mic !== false && !isListening) {
+                start();
+            }
+        };
+        window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, [isListening, settings.controls?.mic, start]);
 
 
     useEffect(() => {

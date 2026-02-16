@@ -72,6 +72,7 @@ export const lockSystem = async () => {
     return { executed: true, message: "System locked." };
 };
 
+
 const triggerHotkey = async (key) => {
     // Helper to press Win + Key
     // Uses a C# snippet embedded in PowerShell to call keybd_event because WScript.Shell cannot hold the Windows key reliably.
@@ -110,7 +111,7 @@ export const handleSystemCommand = async (command) => {
     }
 
     // Shutdown System
-    if (cmd.includes("shutdown system") || cmd.includes("turn off computer") || cmd.includes("turn off pc")) {
+    if (cmd.includes("shutdown system") || cmd.includes("turn off computer") || cmd.includes("turn off pc") || cmd.includes("System shutdown")) {
         console.log("Shutting down system...");
         // Shutdown with 10 second delay
         await executePowerShell('shutdown /s /t 10');
@@ -193,6 +194,38 @@ export const handleSystemCommand = async (command) => {
         await executePowerShell('start ms-screenclip:');
         return { executed: true, message: "Opened Screen Snipping." };
     }
+
+    // Terminate/Kill Process
+    if (cmd.includes("kill") || cmd.includes("terminate") || cmd.includes("close") && (cmd.includes("process") || cmd.includes("task"))) {
+        let target = "";
+        if (cmd.includes("chrome") || cmd.includes("browser")) target = "chrome";
+        else if (cmd.includes("discord")) target = "discord";
+        else if (cmd.includes("spotify")) target = "spotify";
+        else if (cmd.includes("notepad")) target = "notepad";
+        else if (cmd.includes("calculator")) target = "calculator";
+        else if (cmd.includes("edge")) target = "msedge";
+        else if (cmd.includes("word")) target = "winword";
+        else if (cmd.includes("excel")) target = "excel";
+        else if (cmd.includes("powerpoint")) target = "powerpnt";
+        else if (cmd.includes("vlc")) target = "vlc";
+
+        // Fallback: try to extract the name if it's "kill [name]"
+        if (!target) {
+            const match = cmd.match(/(?:kill|terminate|end task) (.+)/i);
+            if (match && match[1]) {
+                const rawName = match[1].trim().toLowerCase();
+                // simple mapping attempt
+                if (rawName === "google chrome") target = "chrome";
+                else target = rawName;
+            }
+        }
+
+        if (target) {
+            const result = await killProcess(target);
+            return result;
+        }
+    }
+
 
     // --- VOLUME CONTROLS ---
 

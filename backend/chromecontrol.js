@@ -1,12 +1,20 @@
 import { exec } from 'child_process';
 
+let isFocusing = false;
+
 const focusChrome = () => {
+    if (isFocusing) return Promise.resolve();
+    isFocusing = true;
+
     return new Promise((resolve) => {
         const psCommand = `powershell -Command "(New-Object -ComObject WScript.Shell).AppActivate('Google Chrome')"`;
         exec(psCommand, (error) => {
             if (error) console.error(`Error focusing Chrome: ${error.message}`);
             // Give it a moment to actually focus
-            setTimeout(resolve, 200);
+            setTimeout(() => {
+                isFocusing = false;
+                resolve();
+            }, 200);
         });
     });
 };

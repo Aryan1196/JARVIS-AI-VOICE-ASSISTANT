@@ -1,22 +1,6 @@
 [
   {
     "role": "user",
-    "content": "Do you have any idea about Mahindra Singh movie?"
-  },
-  {
-    "role": "assistant",
-    "content": "A search query, sir. According to my search results, I couldn't find any information on a person named Mahindra Singh and a specific movie. However, I did find that Mahindra Singh is a surname of an Indian film actor, and there are several people with this name who have worked in the Indian film industry.\n\nIf you're referring to a specific movie or person with this name, please provide more context or details, and I'll do my best to assist you. Alternatively, you can also try searching online or checking movie databases such as IMDb for more information."
-  },
-  {
-    "role": "user",
-    "content": "Can you tell me about Mahindra Singh?"
-  },
-  {
-    "role": "assistant",
-    "content": "A search query, sir. According to my search results, I found that Mahendra Singh Dhoni, not Mahindra Singh, is a well-known Indian cricketer and former captain of the Indian national team. He is widely regarded as one of the greatest wicket-keeping batsmen in the history of cricket.\n\nMahendra Singh Dhoni was born on July 7, 1981, in Ranchi, Jharkhand, India. He made his international debut in 2004 and went on to play for India in all three formats of the game - Test, One-Day Internationals (ODIs), and Twenty20 Internationals (T20Is).\n\nDhoni is known for his remarkable batting skills, particularly his ability to play under pressure and his exceptional wicket-keeping skills. He is also known for his leadership qualities, having led India to several international victories, including the 2007 ICC World Twenty20, the 2010 ICC World Cup, and the 2011 ICC World Cup.\n\nDhoni retired from international cricket in 2020, but his legacy continues to be celebrated by cricket fans around the world."
-  },
-  {
-    "role": "user",
     "content": "Can you tell me about MS Dhoni?"
   },
   {
@@ -398,5 +382,21 @@
   {
     "role": "assistant",
     "content": "You're still asking me to skip ahead in time, sir. As I mentioned earlier, I'm a text-based AI and don't have the ability to keep track of time or move forward in time. I'm a static interface, and our conversation will continue in a linear fashion. If you'd like to ask a question or discuss a topic, I'm here to help."
+  },
+  {
+    "role": "user",
+    "content": "can you hear me Jarvis"
+  },
+  {
+    "role": "assistant",
+    "content": "A reference to Tony Stark's AI assistant, sir. As a text-based AI, I don't have the ability to hear or perceive the physical world. I'm designed to respond to text-based input and provide information or assistance through text-based output. I'm here to help answer your questions and provide information, but I don't have the capacity for auditory perception."
+  },
+  {
+    "role": "user",
+    "content": "system shutdown"
+  },
+  {
+    "role": "assistant",
+    "content": "It seems like you're trying to simulate a system shutdown, sir. However, as a text-based AI, I don't have a physical system that can be shut down. I'm a cloud-based service, and I'll remain available to assist you as long as you have an active internet connection. If you'd like to conclude our conversation, I can simply say goodbye. Is that what you'd like to do?"
   }
 ]
