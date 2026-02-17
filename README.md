@@ -144,6 +144,7 @@ npm install
 ### 2. Configuration (`backend/.env`)
 Create a `.env` file in the `backend` folder with:
 ```env
+GROQ_API_KEY = your_groq_api_key
 GOOGLE_API_KEY=your_gemini_api_key
 DEEPGRAM_API_KEY=your_deepgram_api_key
 ```
