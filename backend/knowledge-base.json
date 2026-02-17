@@ -156,7 +156,8 @@
                     "Stop",
                     "Exit",
                     "Quit",
-                    "Shut down"
+                    "Shut down",
+                    "shut up"
                 ],
                 "response": "Goodbye Sir, have a great day Ahead!"
             },
