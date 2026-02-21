@@ -93,16 +93,28 @@ const UserManual = () => {
             </section>
 
             <section className="manual-section">
-                <h2>✍️ Content Creation</h2>
-                <div className="command-card">
-                    <p>JARVIS can act as your personal writer. Ask it to draft emails, write articles, or generate code.</p>
-                    <ul>
-                        <li><strong>"Write an email to [Name] about [Topic]"</strong>: Drafts a professional email.</li>
-                        <li><strong>"Write an article on [Topic]"</strong>: Generates a structured article or blog post.</li>
-                        <li><strong>"Write a poem about [Topic]"</strong>: Creates creative poetry.</li>
-                        <li><strong>"Write a Python script to [Task]"</strong>: Generates functional code snippet.</li>
-                    </ul>
-                    <code className="command-code">"Write a formal email to my boss asking for leave."</code>
+                <h2>✍️ Content Creation & Coding</h2>
+                <div className="command-grid">
+                    <div className="command-card">
+                        <h3>Writing & Drafting</h3>
+                        <p>JARVIS can act as your personal writer. Ask it to draft emails, write articles, or create documents.</p>
+                        <ul>
+                            <li><strong>"Write an email to [Name] about [Topic]"</strong>: Drafts a professional email.</li>
+                            <li><strong>"Write an article on [Topic]"</strong>: Generates a structured article.</li>
+                            <li><strong>"Write a poem about [Topic]"</strong>: Creates creative poetry.</li>
+                        </ul>
+                        <code className="command-code">"Write a formal email asking for leave."</code>
+                    </div>
+                    <div className="command-card">
+                        <h3>Code Generation</h3>
+                        <p>Generate code in any programming language for any problem or algorithm.</p>
+                        <ul>
+                            <li><strong>"Generate a [Language] code for [Question]"</strong>: Solves standard problems (e.g., LeetCode, algorithms).</li>
+                            <li><strong>"Write a [Language] script to [Task]"</strong>: Generates functional code snippets.</li>
+                            <li><strong>"Generate me the answer for [Question] in [Language]"</strong>: Provides coding solutions directly to your output folder.</li>
+                        </ul>
+                        <code className="command-code">"Generate a Python code to find duplicates in an array"</code>
+                    </div>
                 </div>
             </section>
 
