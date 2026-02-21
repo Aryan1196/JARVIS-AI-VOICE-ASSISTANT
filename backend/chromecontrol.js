@@ -78,6 +78,34 @@ export const handleChromeCommand = async (command) => {
             keys = '^1';
             action = "Switched to first tab";
         }
+        else if (cmd.includes("second tab")) {
+            keys = '^2';
+            action = "Switched to second tab";
+        }
+        else if (cmd.includes("third tab")) {
+            keys = '^3';
+            action = "Switched to third tab";
+        }
+        else if (cmd.includes("fourth tab")) {
+            keys = '^4';
+            action = "Switched to fourth tab";
+        }
+        else if (cmd.includes("fifth tab")) {
+            keys = '^5';
+            action = "Switched to fifth tab";
+        }
+        else if (cmd.includes("sixth tab")) {
+            keys = '^6';
+            action = "Switched to sixth tab";
+        }
+        else if (cmd.includes("seventh tab")) {
+            keys = '^7';
+            action = "Switched to seventh tab";
+        }
+        else if (cmd.includes("eighth tab")) {
+            keys = '^8';
+            action = "Switched to eighth tab";
+        }
         else if (cmd.includes("last tab")) {
             keys = '^9';
             action = "Switched to last tab";

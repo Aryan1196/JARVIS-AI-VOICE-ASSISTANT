@@ -10,9 +10,7 @@ import { fileURLToPath } from 'url';
 import puppeteer from 'puppeteer';
 import { generateSpeech } from './tts.js';
 import launcherRoutes from './launcherRoutes.js';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
-import { spawn } from 'child_process';
+
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -367,12 +365,33 @@ const scrapeYouTubeVideo = async (query) => {
 
 // Graceful Shutdown
 process.on('SIGINT', async () => {
+    console.log('\n[Server] Shutting down JARVIS...');
+    try {
+        if (fs.existsSync(LOGS_FILE)) {
+            // Clear conversation history on exit
+            fs.writeFileSync(LOGS_FILE, JSON.stringify([], null, 2));
+            console.log('[Server] Conversation history cleared.');
+        }
+    } catch (error) {
+        console.error('Error clearing logs on shutdown:', error);
+    }
+
     if (globalBrowser) {
         console.log('[Puppeteer] Closing global browser...');
         await globalBrowser.close();
     }
     process.exit();
 });
+
+// Clear conversation history on startup
+try {
+    if (fs.existsSync(LOGS_FILE)) {
+        fs.writeFileSync(LOGS_FILE, JSON.stringify([], null, 2));
+        console.log('[Server] Conversation history cleared on startup.');
+    }
+} catch (error) {
+    console.error('Error clearing logs on startup:', error);
+}
 
 // Load knowledge base
 const loadKnowledgeBase = () => {
@@ -430,7 +449,7 @@ const saveConversationHistory = (history) => {
 };
 
 // Keep only last N messages to avoid token limits
-const MAX_HISTORY = 50;
+const MAX_HISTORY = 12;
 
 // Get URL from Groq for unknown websites
 const getUrlFromGroq = async (query) => {
@@ -470,6 +489,57 @@ const getUrlFromGroq = async (query) => {
     }
 };
 
+// Fetch Live News
+const getLiveNews = async (query = null) => {
+    try {
+        const apiKey = process.env.NEWS_API_KEY;
+        if (!apiKey) {
+            console.error('NEWS_API_KEY is missing');
+            return "I'm sorry, my news module is not configured with an API key.";
+        }
+
+        let url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=${apiKey}`;
+        if (query) {
+            url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&language=en&apiKey=${apiKey}`;
+        }
+
+        let response = await fetch(url);
+        let data = await response.json();
+
+        // Fallback to US news if India has 0 results right now and no specific query was made
+        if (!query && data.status === 'ok' && (!data.articles || data.articles.length === 0)) {
+            console.log('No articles found for country=in, falling back to country=us');
+            url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}`;
+            response = await fetch(url);
+            data = await response.json();
+        }
+
+        if (data.status !== 'ok') {
+            return "I encountered an error while fetching the latest news.";
+        }
+
+        const headlines = [];
+        for (const article of data.articles.slice(0, 5)) {
+            headlines.push(article.title);
+        }
+
+        if (headlines.length === 0) {
+            return query
+                ? `I couldn't find any recent headlines about ${query} at the moment.`
+                : "I couldn't find any recent live news headlines at the moment.";
+        }
+
+        const intro = query
+            ? `Here are the top headlines regarding ${query}: `
+            : "Here are the top headlines right now: ";
+
+        return intro + headlines.join(". ");
+    } catch (error) {
+        console.error('Error fetching news:', error);
+        return "I apologize, I could not retrieve the news due to a connection error.";
+    }
+};
+
 app.post('/api/chat', async (req, res) => {
     try {
         const { message } = req.body;
@@ -487,6 +557,30 @@ app.post('/api/chat', async (req, res) => {
         if (isTimeQuery(cleanMessage)) {
             const response = getTimeForLocation(cleanMessage);
             console.log('Time query handled directly:', response);
+            return res.json({ response });
+        }
+
+        // Live News Command Routing
+        const isNewsQuery = /\b(news|headlines)\b/i.test(cleanMessage);
+        if (isNewsQuery) {
+            // Support "news about X", "headlines for Y", "news on Z"
+            const specificMatch = cleanMessage.match(/\b(?:news|headlines)\b\s+(?:about|on|regarding|for|of)\s+the\s+(.+)/i) ||
+                cleanMessage.match(/\b(?:news|headlines)\b\s+(?:about|on|regarding|for|of)\s+(.+)/i);
+
+            const query = specificMatch ? specificMatch[1].trim() : null;
+            console.log('News query detected:', cleanMessage, '| Extracted Topic:', query);
+
+            const response = await getLiveNews(query);
+
+            // Keep history updated
+            let history = loadConversationHistory();
+            history.push({ role: 'user', content: message });
+            history.push({ role: 'assistant', content: response });
+            if (history.length > MAX_HISTORY * 2) {
+                history = history.slice(-MAX_HISTORY * 2);
+            }
+            saveConversationHistory(history);
+
             return res.json({ response });
         }
 
@@ -508,11 +602,11 @@ app.post('/api/chat', async (req, res) => {
         // If message consists ONLY of known apps/websites, launch them
         try {
             const { isKnownItem, smartLaunch } = await import('./launcher.js');
-            const potentialItems = message.split(/,| and /i).map(i => i.trim()).filter(i => i.length > 0);
+            const potentialItems = cleanMessage.split(/,| and /i).map(i => i.trim()).filter(i => i.length > 0);
 
             if (potentialItems.length > 0 && potentialItems.every(item => isKnownItem(item))) {
-                console.log('Implicit launcher command detected:', message);
-                const result = await smartLaunch(message);
+                console.log('Implicit launcher command detected:', cleanMessage);
+                const result = await smartLaunch(cleanMessage);
                 return res.json({ response: result.message });
             }
         } catch (e) {
@@ -560,7 +654,7 @@ app.post('/api/chat', async (req, res) => {
         // PRIORITY 0: Check for YouTube commands (Specific routing)
         try {
             const { handleYouTubeCommand, openWebsite } = await import('./launcher.js');
-            const youtubeResult = await handleYouTubeCommand(message);
+            const youtubeResult = await handleYouTubeCommand(cleanMessage);
 
             if (youtubeResult && youtubeResult.success) {
                 // Check if it's a "play" intent that requires finding a video
@@ -590,7 +684,7 @@ app.post('/api/chat', async (req, res) => {
                     return res.json({ response: `I couldn't find a specific video, so I opened the search results for "${query}".` });
                 }
 
-                console.log('YouTube command routed:', message);
+                console.log('YouTube command routed:', cleanMessage);
                 return res.json({ response: youtubeResult.message });
             }
         } catch (e) {
@@ -599,7 +693,7 @@ app.post('/api/chat', async (req, res) => {
 
         // PRIORITY 0.5: Implicit "Play" commands (e.g. "play despacito")
         // If not a known app/site, default to YouTube
-        const playMatch = message.match(/^(?:play|listen to)\s+(.+)$/i);
+        const playMatch = cleanMessage.match(/^(?:play|listen to)\s+(.+)$/i);
         if (playMatch) {
             const target = playMatch[1].trim();
             try {
@@ -645,7 +739,7 @@ app.post('/api/chat', async (req, res) => {
         // PRIORITY 1: Check for explicit launcher commands
 
         // Check for explicit "Search for X on Google" (Bypass smart launch)
-        const explicitSearchMatch = message.match(/^search for (.+) on google$/i);
+        const explicitSearchMatch = cleanMessage.match(/^search for (.+) on google$/i);
         if (explicitSearchMatch) {
             const query = explicitSearchMatch[1].trim();
             console.log(`Explicit Google Search detected for: "${query}"`);
@@ -660,7 +754,7 @@ app.post('/api/chat', async (req, res) => {
         }
 
         // Check for "close" command first
-        const closeMatch = message.match(/^(?:close|quit|exit)\s+(.+)/i);
+        const closeMatch = cleanMessage.match(/^(?:close|quit|exit)\s+(.+)/i);
         if (closeMatch) {
             const target = closeMatch[1].trim();
             console.log(`Close command detected for: "${target}"`);
@@ -690,7 +784,7 @@ app.post('/api/chat', async (req, res) => {
         ];
 
         for (const pattern of launcherPatterns) {
-            const match = message.match(pattern);
+            const match = cleanMessage.match(pattern);
             if (match) {
                 const targetName = match[1].trim();
                 console.log('Launcher command detected:', targetName);
@@ -725,7 +819,7 @@ app.post('/api/chat', async (req, res) => {
         }
 
         // PRIORITY 2: Check custom knowledge base
-        const kbResponse = searchKnowledgeBase(message);
+        const kbResponse = searchKnowledgeBase(cleanMessage);
         if (kbResponse) {
             console.log('Responding from knowledge base');
             return res.json({ response: kbResponse });
@@ -805,7 +899,7 @@ app.post('/api/chat', async (req, res) => {
                 messages,
                 model: 'llama-3.1-8b-instant',
                 temperature: 0.7,
-                max_tokens: 512
+                max_tokens: 256
             });
             response = chatCompletion.choices[0]?.message?.content || 'I apologize, I could not process that request.';
         } else {
@@ -828,7 +922,7 @@ app.post('/api/chat', async (req, res) => {
         res.json({ response });
     } catch (error) {
         console.error('Groq API error:', error);
-        res.status(500).json({ error: 'Failed to get response from JARVIS' });
+        res.status(500).json({ error: 'Failed to get response from JARVIS', details: error.message });
     }
 });
 
@@ -844,95 +938,16 @@ app.get('/api/history', (req, res) => {
     res.json({ history });
 });
 
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-    cors: {
-        origin: ["https://jarvis-ai-voice-assistant-theta.vercel.app", "http://localhost:5173"],
-        methods: ["GET", "POST"],
-        credentials: true
-    }
-});
-
-let pythonProcess = null;
-
-io.on('connection', (socket) => {
-    console.log('Client connected to WebSocket');
-
-    socket.on('start-speech', () => {
-        console.log('[Socket] Received start-speech request');
-        if (pythonProcess) {
-            console.log('[Socket] Python speech process already running');
-            return;
-        }
-
-        const scriptPath = path.join(__dirname, 'speech_service.py');
-        console.log(`[Socket] Spawning Python script at: ${scriptPath}`);
-
-        try {
-            pythonProcess = spawn('python', [scriptPath]);
-
-            console.log(`[Socket] Process spawned with PID: ${pythonProcess.pid}`);
-
-            pythonProcess.stdout.on('data', (data) => {
-                const str = data.toString();
-                console.log(`[Python stdout] ${str.trim()}`);
-                const lines = str.split('\n');
-                lines.forEach(line => {
-                    if (line.trim()) {
-                        try {
-                            const jsonData = JSON.parse(line);
-                            socket.emit('speech-data', jsonData);
-                        } catch (e) {
-                            console.error('[Socket] Error parsing JSON from Python:', line);
-                        }
-                    }
-                });
-            });
-
-            pythonProcess.stderr.on('data', (data) => {
-                console.error(`[Python stderr] ${data}`);
-            });
-
-            pythonProcess.on('error', (err) => {
-                console.error('[Python spawn error]', err);
-                socket.emit('speech-data', { type: 'error', message: 'Failed to start Python script' });
-            });
-
-            pythonProcess.on('close', (code) => {
-                console.log(`[Socket] Python process exited with code ${code}`);
-                pythonProcess = null;
-                socket.emit('speech-status', 'Stopped');
-            });
-        } catch (e) {
-            console.error('[Socket] Exception spawning process:', e);
-        }
-    });
-
-    socket.on('stop-speech', () => {
-        if (pythonProcess) {
-            console.log('Stopping Python speech service...');
-            pythonProcess.kill();
-            pythonProcess = null;
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
-        if (pythonProcess) {
-            pythonProcess.kill();
-            pythonProcess = null;
-        }
-    });
-});
 
 const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => {
+app.listen(PORT, () => {
     console.log(`JARVIS backend running on port ${PORT}`);
     console.log('Live web search enabled');
     console.log('Direct time handling enabled');
     console.log('Edge-TTS voice synthesis enabled');
-    console.log('Socket.IO enabled for Python speech recognition');
+    console.log('Deepgram speech recognition enabled');
 });
+
 
 // TTS endpoint - generates audio from text
 app.post('/api/tts', async (req, res) => {

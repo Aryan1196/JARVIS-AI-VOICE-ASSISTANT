@@ -153,10 +153,41 @@ const WEBSITES = {
     'manga website': 'https://mangafire.to',
 
     // Local / Dev
-    'localhost': 'https://jarvis-ai-voice-assistant-theta.vercel.app/',
-    'dev server': 'https://jarvis-ai-voice-assistant-theta.vercel.app/',
-    'my website': 'https://jarvis-ai-voice-assistant-theta.vercel.app/',
 
+    'my website': '',
+
+};
+
+/**
+ * Search the Windows Start Menu for an app and launch it via its AppID
+ */
+export const findAndLaunchStartApp = async (appName) => {
+    try {
+        const safeName = appName.replace(/'/g, "''");
+        console.log(`[DEBUG] Searching Start Menu for: ${appName}`);
+        const { stdout } = await execAsync(
+            `powershell -NoProfile -Command "$app = Get-StartApps | Where-Object Name -match '${safeName}' | Select-Object -First 1; if ($app) { Write-Output $app.AppID }"`
+        );
+
+        console.log(`[DEBUG] Get-StartApps stdout: '${stdout}'`);
+        const appId = stdout.trim();
+        if (appId) {
+            console.log(`[DEBUG] Found AppID in Start Menu: ${appId}`);
+            try {
+                // explorer often exits with code 1 when spawning modern apps, ignore it
+                await execAsync(`explorer "shell:AppsFolder\\${appId}"`);
+            } catch (ignore) { }
+
+            return {
+                success: true,
+                message: `Successfully opened ${appName}.`,
+                app: appName
+            };
+        }
+    } catch (error) {
+        console.log(`[DEBUG] Start Menu search failed: ${error.message}`);
+    }
+    return null;
 };
 
 /**
@@ -409,11 +440,20 @@ function findClosestMatch(input, targets) {
 async function launchSingle(input, options = {}) {
     const lowerInput = input.toLowerCase().trim();
 
-    // 1. Exact matches
+    // 1. Exact matches for explicit applications
     if (APPLICATIONS[lowerInput]) return await openApp(input);
+
+    // 2. Fallback to Windows Start Menu search
+    // Do this BEFORE any website matching to strictly prioritize local installed apps
+    const startAppResult = await findAndLaunchStartApp(lowerInput);
+    if (startAppResult) {
+        return startAppResult;
+    }
+
+    // 3. Exact website match
     if (WEBSITES[lowerInput]) return await openWebsite(input);
 
-    // 2. Fuzzy matches
+    // 4. Fuzzy matches
     const appMatch = findClosestMatch(lowerInput, Object.keys(APPLICATIONS));
     if (appMatch) {
         console.log(`Fuzzy match: ${input} -> ${appMatch}`);
@@ -459,6 +499,11 @@ export const isKnownItem = (input) => {
 
     const siteMatch = findClosestMatch(lowerInput, Object.keys(WEBSITES));
     if (siteMatch) return true;
+
+    // Check if it's potentially an installed start menu app (too slow to verify synchronously here,
+    // but we can assume if it's a single word without spaces/dots it MIGHT be an app)
+    // For `isKnownItem` we usually just want to prevent falling back to implicit Google searches.
+    if (!input.includes(' ') && !input.includes('.')) return true;
 
     return !!(input.includes('.com') || input.includes('.org') || input.includes('http'));
 };
@@ -551,7 +596,7 @@ const PROCESS_MAP = {
     'notepad': 'notepad.exe',
     'calculator': 'CalculatorApp.exe', // Modern windows calc
     'calc': 'CalculatorApp.exe',
-    'whatsapp': 'WhatsApp.Root.exe',
+    'whatsapp': 'WhatsApp.exe',
     'spotify': 'Spotify.exe',
     'discord': 'Discord.exe',
     'vlc': 'vlc.exe',
@@ -565,78 +610,127 @@ const PROCESS_MAP = {
     'powershell': 'powershell.exe',
     'steam': 'steam.exe',
     'obs': 'obs64.exe',
-    'task manager': 'Taskmgr.exe'
+    'task manager': 'Taskmgr.exe',
+    'teams': 'ms-teams.exe',
+    'microsoft teams': 'ms-teams.exe',
+    'slack': 'slack.exe',
+    'zoom': 'Zoom.exe',
+    'skype': 'Skype.exe',
+    'telegram': 'Telegram.exe',
+    'telegram desktop': 'Telegram.exe',
+    'paint': 'mspaint.exe',
+    'file explorer': 'explorer.exe',
+    'explorer': 'explorer.exe',
+    'notepad++': 'notepad++.exe',
 };
 
 /**
  * Close an application by name
+ * Uses multiple strategies: PROCESS_MAP -> wildcard search -> guessed name
  */
 export const closeApp = async (appName) => {
     const lowerName = appName.toLowerCase().trim();
     console.log(`[DEBUG] closeApp called for: "${appName}" (lower: "${lowerName}")`);
 
-    // Check if it's a website first
-    if (WEBSITES[lowerName] || lowerName.includes('.com')) {
-        console.log(`[DEBUG] Identified as website: ${lowerName}`);
-        return {
-            success: false,
-            message: `I cannot close specific websites like ${appName} directly. Please use "Close tab" to close the current tab.`,
-            isWebsite: true
-        };
-    }
-    console.log(`[DEBUG] Not a website, checking process map...`);
+    // Strategy 1: Try the exact process name from PROCESS_MAP
+    const mappedProcess = PROCESS_MAP[lowerName];
 
-    // Check mapping or assume name matches process
-    let processName = PROCESS_MAP[lowerName];
-
-    if (!processName) {
-        // Try to guess process name (e.g. "notepad++" -> "notepad++.exe")
-        // Remove spaces and special chars
-        processName = lowerName.replace(/\s+/g, '') + '.exe';
+    if (mappedProcess) {
+        console.log(`[DEBUG] Found in PROCESS_MAP: ${mappedProcess}`);
+        const result = await tryKillProcess(mappedProcess, appName);
+        if (result.success) return result;
+        console.log(`[DEBUG] PROCESS_MAP name failed, trying wildcard search...`);
     }
 
+    // Strategy 2: Use PowerShell to find any process matching the app name or window title
     try {
-        console.log(`Attempting to close ${appName} (Process: ${processName})`);
+        console.log(`[DEBUG] Searching for processes matching name or window title: *${lowerName}*`);
+        // Escape quotes to prevent injection
+        const safeName = lowerName.replace(/'/g, "''");
+        const { stdout } = await execAsync(
+            `powershell -Command "Get-Process | Where-Object { $_.ProcessName -match '${safeName}' -or $_.MainWindowTitle -match '${safeName}' } | Select-Object -ExpandProperty Id -First 5"`
+        );
 
-        // Try taskkill first
-        try {
-            const command = `taskkill /IM "${processName}" /F`;
-            await execAsync(command);
-        } catch (taskkillError) {
-            // If taskkill fails, try PowerShell Stop-Process (better for strict permissions)
-            // AND handle UWP naming conventions if needed
-            if (processName.toLowerCase() === 'whatsapp.root.exe' || processName.toLowerCase() === 'notepad.exe') {
-                console.log(`Taskkill failed, trying PowerShell Stop-Process for ${processName}`);
-                // Remove .exe for Stop-Process -Name, but for WhatsApp.Root it might need just "WhatsApp" or "WhatsApp.Root"
-                let procNameNoExt = processName.replace('.exe', '');
+        const foundIds = stdout.trim().split('\n').map(p => p.trim()).filter(p => p.length > 0);
 
-                const psCommand = `powershell -Command "Stop-Process -Name '${procNameNoExt}' -Force -ErrorAction SilentlyContinue"`;
-                await execAsync(psCommand);
-            } else {
-                throw taskkillError;
+        if (foundIds.length > 0) {
+            console.log(`[DEBUG] Found matching process IDs: ${foundIds.join(', ')}`);
+
+            // Kill all matching processes by Id
+            let killedAny = false;
+            for (const pid of foundIds) {
+                try {
+                    await execAsync(`powershell -Command "Stop-Process -Id ${pid} -Force -ErrorAction SilentlyContinue"`);
+                    console.log(`[DEBUG] Killed process ID: ${pid}`);
+                    killedAny = true;
+                } catch (e) {
+                    console.log(`[DEBUG] Failed to kill ID ${pid}: ${e.message}`);
+                }
+            }
+
+            if (killedAny) {
+                return {
+                    success: true,
+                    message: `Closed ${appName}.`,
+                    process: foundIds.join(', ')
+                };
             }
         }
+    } catch (searchError) {
+        console.log(`[DEBUG] Process search failed: ${searchError.message}`);
+    }
 
-        return {
-            success: true,
-            message: `Closed ${appName}.`,
-            process: processName
-        };
-    } catch (error) {
-        // Check if error is "process not found"
-        if (error.message.includes('not found')) {
-            return {
-                success: false,
-                message: `I couldn't find a running process for ${appName}.`,
-                error: 'Process not found'
-            };
-        }
+    // Strategy 3: Try guessed process name as last resort
+    if (!mappedProcess) {
+        const guessedName = lowerName.replace(/\s+/g, '') + '.exe';
+        console.log(`[DEBUG] Trying guessed process name: ${guessedName}`);
+        const result = await tryKillProcess(guessedName, appName);
+        if (result.success) return result;
+    }
 
-        console.error(`Error closing ${appName}:`, error.message);
+    // Check if it's considered a website as a fallback message
+    if (WEBSITES[lowerName] || lowerName.includes('.com')) {
         return {
             success: false,
-            message: `Failed to close ${appName}.`,
-            error: error.message
+            message: `I couldn't close ${appName}. It might be running as a background web app and I couldn't find its window.`,
+            error: 'Process not found for website'
         };
     }
+
+    return {
+        success: false,
+        message: `I couldn't find a running process or window for ${appName}.`,
+        error: 'Process not found'
+    };
 };
+
+/**
+ * Helper: Try to kill a process by its .exe name
+ */
+async function tryKillProcess(processName, displayName) {
+    try {
+        await execAsync(`taskkill /IM "${processName}" /F`);
+        return {
+            success: true,
+            message: `Closed ${displayName}.`,
+            process: processName
+        };
+    } catch (e) {
+        // taskkill failed, try PowerShell Stop-Process
+        try {
+            const procNameNoExt = processName.replace('.exe', '');
+            await execAsync(`powershell -Command "Stop-Process -Name '${procNameNoExt}' -Force -ErrorAction Stop"`);
+            return {
+                success: true,
+                message: `Closed ${displayName}.`,
+                process: processName
+            };
+        } catch (psError) {
+            return {
+                success: false,
+                message: `Failed to close ${displayName}.`,
+                error: psError.message
+            };
+        }
+    }
+}
